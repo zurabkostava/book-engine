@@ -3,7 +3,7 @@
        ყველა სტილი მოქმედებს მხოლოდ ამ ID-ის შიგნით
        ============================================================ */
 
-    /* იზოლირებული ცვლადები */
+/* იზოლირებული ცვლადები */
 #digital-library-root {
     --book-width: 600px;
     --book-height: 80vh;
@@ -1159,7 +1159,7 @@ body:not(.is-admin) #digital-library-root #create-new-book-btn {
 
 /* ❌ წაშლილია: list-style-type-ის იძულება, რაც იწვევდა გაორებას "1. 1." */
 R
-/* 3. შეწევა (Indent) */
+    /* 3. შეწევა (Indent) */
 #digital-library-root .ql-indent-1 {
     padding-left: 3rem !important;
 }
@@ -1301,69 +1301,4 @@ R
     border-radius: 3px !important;
     z-index: 5000 !important; /* რომ ყველაფრის თავზე იყოს */
     pointer-events: none !important; /* რომ ხელს არ უშლიდეს გვერდზე კლიკს */
-}
-
-
-/* Sidebar TOC Styles */
-#digital-library-root .toc-item {
-    cursor: pointer !important;
-    list-style: none !important;
-    color: #888 !important;
-    font-size: 0.9rem !important;
-    transition: color 0.2s !important;
-}
-
-#digital-library-root .toc-header {
-    display: flex !important;
-    align-items: center !important;
-    padding: 8px 0 !important;
-}
-
-#digital-library-root .toc-header:hover,
-#digital-library-root .toc-item.toc-h2:hover {
-    color: #fff !important;
-}
-
-/* ისარი */
-#digital-library-root .toc-arrow {
-    font-size: 16px !important;
-    margin-right: 8px !important;
-    transition: transform 0.3s ease !important;
-    opacity: 0.7 !important;
-}
-
-/* როცა დახურულია (Closed State) */
-#digital-library-root .toc-item.closed .toc-arrow {
-    transform: rotate(-90deg) !important; /* ისარი გვერდზე */
-}
-#digital-library-root .toc-item.closed .toc-sublist {
-    display: none !important; /* სიის დამალვა */
-}
-
-/* H1 აქტიური */
-#digital-library-root .toc-item.active > .toc-header {
-    color: #fff !important;
-    font-weight: bold !important;
-}
-
-/* Sublist (H2 Container) */
-#digital-library-root .toc-sublist {
-    list-style: none !important;
-    padding-left: 28px !important; /* ისრის ადგილის გამოტოვება */
-    border-left: 1px solid #333 !important;
-    margin-left: 7px !important;
-}
-
-/* H2 Items */
-#digital-library-root .toc-item.toc-h2 {
-    padding: 6px 0 !important;
-    font-size: 0.85rem !important;
-    display: block !important;
-}
-
-#digital-library-root .toc-item.toc-h2.active {
-    color: #fff !important;
-    padding-left: 5px !important;
-    border-left: 2px solid #fff !important;
-    margin-left: -1px !important;
 }
