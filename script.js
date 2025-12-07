@@ -19,19 +19,19 @@ async function checkPasswordHash(inputPassword) {
 // ==========================================
 const wrapper = document.getElementById('book-engine-wrapper');
 const FORCED_SLUG = wrapper ? wrapper.getAttribute('data-force-slug') : null;
-// URL პარამეტრების წაკითხვა
+// URL áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ”áƒ‘áƒ˜áƒ¡ áƒ¬áƒáƒ™áƒ˜áƒ—áƒ®áƒ•áƒ
 const urlParams = new URLSearchParams(window.location.search);
 let CURRENT_BOOK_SLUG = FORCED_SLUG || (window.location.hash ? window.location.hash.substring(1) : null);
 let currentBookId = null;
 const DEFAULT_META = { title: "UNTITLED", subtitle: "Draft", coverImage: null };
 const DEFAULT_CHAPTERS = [{ id: 'ch1', title: "Chapter 1", content: `<h2>Chapter 1</h2><p>Start writing...</p>` }];
-// ✅ NEW: TranslatePress Logic (URL Path Detection)
-// ვამოწმებთ, არის თუ არა მისამართში "/ka/" ან პარამეტრი "?lang=ka"
+// âœ… NEW: TranslatePress Logic (URL Path Detection)
+// áƒ•áƒáƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ—, áƒáƒ áƒ˜áƒ¡ áƒ—áƒ£ áƒáƒ áƒ áƒ›áƒ˜áƒ¡áƒáƒ›áƒáƒ áƒ—áƒ¨áƒ˜ "/ka/" áƒáƒœ áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ˜ "?lang=ka"
 const isKaPath = window.location.pathname.includes('/ka/');
 const isKaParam = urlParams.get('lang') === 'ka';
-// თუ რომელიმე პირობა სრულდება -> ქართული, თუ არადა -> ინგლისური (Default)
+// áƒ—áƒ£ áƒ áƒáƒ›áƒ”áƒšáƒ˜áƒ›áƒ” áƒžáƒ˜áƒ áƒáƒ‘áƒ áƒ¡áƒ áƒ£áƒšáƒ“áƒ”áƒ‘áƒ -> áƒ¥áƒáƒ áƒ—áƒ£áƒšáƒ˜, áƒ—áƒ£ áƒáƒ áƒáƒ“áƒ -> áƒ˜áƒœáƒ’áƒšáƒ˜áƒ¡áƒ£áƒ áƒ˜ (Default)
 let currentLanguage = (isKaPath || isKaParam) ? 'ka' : 'en';
-let editorLanguage = currentLanguage; // ედიტორიც ამ ენით დაიწყებს
+let editorLanguage = currentLanguage; // áƒ”áƒ“áƒ˜áƒ¢áƒáƒ áƒ˜áƒª áƒáƒ› áƒ”áƒœáƒ˜áƒ— áƒ“áƒáƒ˜áƒ¬áƒ§áƒ”áƒ‘áƒ¡
 let chaptersData = [];
 let bookMeta = {};
 let quill;
@@ -48,44 +48,44 @@ function debounce(func, timeout = 300) {
 }
 const debouncedRender = debounce(() => { if (CURRENT_BOOK_SLUG) renderBook(); }, 300);
 document.addEventListener("DOMContentLoaded", async () => {
-// ✅ THEME INIT
+// âœ… THEME INIT
     const savedTheme = localStorage.getItem('book_theme');
     const themeBtn = document.getElementById('theme-toggle-btn');
     if (savedTheme === 'light') {
         document.body.classList.add('light-mode');
         if(themeBtn) themeBtn.innerHTML = '<span class="material-icons-outlined">dark_mode</span>';
     }
-// ✅ THEME TOGGLE CLICK
+// âœ… THEME TOGGLE CLICK
     if (themeBtn) {
         themeBtn.onclick = () => {
             document.body.classList.toggle('light-mode');
             const isLight = document.body.classList.contains('light-mode');
-// იკონის შეცვლა (მზე <-> მთვარე)
+// áƒ˜áƒ™áƒáƒœáƒ˜áƒ¡ áƒ¨áƒ”áƒªáƒ•áƒšáƒ (áƒ›áƒ–áƒ” <-> áƒ›áƒ—áƒ•áƒáƒ áƒ”)
             themeBtn.innerHTML = isLight
                 ? '<span class="material-icons-outlined">dark_mode</span>'
                 : '<span class="material-icons-outlined">light_mode</span>';
-// შენახვა
+// áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ
             localStorage.setItem('book_theme', isLight ? 'light' : 'dark');
-// გადახატვა (ფერები შეიცვალა, მაგრამ ზომები იგივეა,
-// თუმცა უსაფრთხოებისთვის ერთი რენდერი არ აწყენს, თუ რამე გლიტჩი გაჩნდა)
-// renderBook(); // (სავარაუდოდ არ დაგჭირდება, CSS თავისით იზამს)
+// áƒ’áƒáƒ“áƒáƒ®áƒáƒ¢áƒ•áƒ (áƒ¤áƒ”áƒ áƒ”áƒ‘áƒ˜ áƒ¨áƒ”áƒ˜áƒªáƒ•áƒáƒšáƒ, áƒ›áƒáƒ’áƒ áƒáƒ› áƒ–áƒáƒ›áƒ”áƒ‘áƒ˜ áƒ˜áƒ’áƒ˜áƒ•áƒ”áƒ,
+// áƒ—áƒ£áƒ›áƒªáƒ áƒ£áƒ¡áƒáƒ¤áƒ áƒ—áƒ®áƒáƒ”áƒ‘áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡ áƒ”áƒ áƒ—áƒ˜ áƒ áƒ”áƒœáƒ“áƒ”áƒ áƒ˜ áƒáƒ  áƒáƒ¬áƒ§áƒ”áƒœáƒ¡, áƒ—áƒ£ áƒ áƒáƒ›áƒ” áƒ’áƒšáƒ˜áƒ¢áƒ©áƒ˜ áƒ’áƒáƒ©áƒœáƒ“áƒ)
+// renderBook(); // (áƒ¡áƒáƒ•áƒáƒ áƒáƒ£áƒ“áƒáƒ“ áƒáƒ  áƒ“áƒáƒ’áƒ­áƒ˜áƒ áƒ“áƒ”áƒ‘áƒ, CSS áƒ—áƒáƒ•áƒ˜áƒ¡áƒ˜áƒ— áƒ˜áƒ–áƒáƒ›áƒ¡)
         };
     }
 // ===========================================
-// ✅ FONT SIZE CONTROL LOGIC (FIXED FOR SCOPE)
+// âœ… FONT SIZE CONTROL LOGIC (FIXED FOR SCOPE)
 // ===========================================
     const btnMinus = document.getElementById('font-size-minus');
     const btnPlus = document.getElementById('font-size-plus');
-// საწყისი ზომა
+// áƒ¡áƒáƒ¬áƒ§áƒ˜áƒ¡áƒ˜ áƒ–áƒáƒ›áƒ
     let currentFontSize = parseFloat(localStorage.getItem('user_font_size')) || 0.95;
     const MIN_FONT = 0.7;
     const MAX_FONT = 1.4;
     const STEP = 0.05;
-// დამხმარე ფუნქცია განახლებისთვის
+// áƒ“áƒáƒ›áƒ®áƒ›áƒáƒ áƒ” áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ áƒ’áƒáƒœáƒáƒ®áƒšáƒ”áƒ‘áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
     function updateFontSize(newSize) {
         if (newSize < MIN_FONT || newSize > MAX_FONT) return;
         currentFontSize = parseFloat(newSize.toFixed(2));
-// ✅ FIX: ცვლადი ვანიჭოთ პირდაპირ ჩვენს მთავარ კონტეინერს და არა html-ს
+// âœ… FIX: áƒªáƒ•áƒšáƒáƒ“áƒ˜ áƒ•áƒáƒœáƒ˜áƒ­áƒáƒ— áƒžáƒ˜áƒ áƒ“áƒáƒžáƒ˜áƒ  áƒ©áƒ•áƒ”áƒœáƒ¡ áƒ›áƒ—áƒáƒ•áƒáƒ  áƒ™áƒáƒœáƒ¢áƒ”áƒ˜áƒœáƒ”áƒ áƒ¡ áƒ“áƒ áƒáƒ áƒ html-áƒ¡
         const rootElement = document.getElementById('digital-library-root');
         if (rootElement) {
             rootElement.style.setProperty('--p-font-size', currentFontSize + 'rem');
@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         localStorage.setItem('user_font_size', currentFontSize);
         debouncedRender();
     }
-// ინიციალიზაცია (გვერდის ჩატვირთვისას დავაყენოთ შენახული ზომა)
+// áƒ˜áƒœáƒ˜áƒªáƒ˜áƒáƒšáƒ˜áƒ–áƒáƒªáƒ˜áƒ (áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜áƒ¡ áƒ©áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ˜áƒ¡áƒáƒ¡ áƒ“áƒáƒ•áƒáƒ§áƒ”áƒœáƒáƒ— áƒ¨áƒ”áƒœáƒáƒ®áƒ£áƒšáƒ˜ áƒ–áƒáƒ›áƒ)
     document.documentElement.style.setProperty('--p-font-size', currentFontSize + 'rem');
     if(btnMinus) btnMinus.onclick = () => updateFontSize(currentFontSize - STEP);
     if(btnPlus) btnPlus.onclick = () => updateFontSize(currentFontSize + STEP);
@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         sidebar.classList.add('collapsed');
         document.body.classList.add('sidebar-closed');
     }
-// ✅ NEW: Language Switcher Logic (Reader)
+// âœ… NEW: Language Switcher Logic (Reader)
     const langBtn = document.getElementById('lang-switcher-btn');
     if (langBtn) {
         langBtn.onclick = () => {
@@ -134,19 +134,19 @@ function setupAdminAuth() {
     if (!loginBtn) return;
     if (sessionStorage.getItem('is_admin') === 'true') {
         document.body.classList.add('is-admin');
-        loginBtn.innerText = "🔓";
+        loginBtn.innerText = "ðŸ”“";
     } else {
-        loginBtn.innerText = "🔒";
+        loginBtn.innerText = "ðŸ”’";
     }
     loginBtn.onclick = async () => {
         if (document.body.classList.contains('is-admin')) {
             if (confirm("Logout?")) {
                 sessionStorage.removeItem('is_admin');
                 document.body.classList.remove('is-admin');
-                loginBtn.innerText = "🔒";
+                loginBtn.innerText = "ðŸ”’";
                 window.location.reload();
             }
-            // ... (ზედა ნაწილი იგივეა) ...
+            // ... (áƒ–áƒ”áƒ“áƒ áƒœáƒáƒ¬áƒ˜áƒšáƒ˜ áƒ˜áƒ’áƒ˜áƒ•áƒ”áƒ) ...
         } else {
             const input = prompt("Password:");
             if (input !== null) {
@@ -154,10 +154,10 @@ function setupAdminAuth() {
                 if (isValid) {
                     sessionStorage.setItem('is_admin', 'true');
                     document.body.classList.add('is-admin');
-                    loginBtn.innerText = "🔓";
+                    loginBtn.innerText = "ðŸ”“";
                     alert("Welcome back, Architect.");
 
-                    // ✅ NEW: გვერდის გადატვირთვა, რომ Draft-ები გამოჩნდეს
+                    // âœ… NEW: áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜áƒ¡ áƒ’áƒáƒ“áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ, áƒ áƒáƒ› Draft-áƒ”áƒ‘áƒ˜ áƒ’áƒáƒ›áƒáƒ©áƒœáƒ“áƒ”áƒ¡
                     window.location.reload();
                 } else alert("Wrong password");
             }
@@ -245,14 +245,14 @@ async function initReaderMode() {
                 currentLanguage = currentLanguage === 'ka' ? 'en' : 'ka';
                 editorLanguage = currentLanguage;
                 langBtn.innerText = currentLanguage.toUpperCase();
-// ენის შეცვლისას: ჩავაქროთ კონტენტი და ვაჩვენოთ ლოადერი
-                document.body.classList.remove('loaded'); // კონტენტი იმალება
-                if(loader) loader.classList.remove('hidden'); // ლოადერი ჩნდება
+// áƒ”áƒœáƒ˜áƒ¡ áƒ¨áƒ”áƒªáƒ•áƒšáƒ˜áƒ¡áƒáƒ¡: áƒ©áƒáƒ•áƒáƒ¥áƒ áƒáƒ— áƒ™áƒáƒœáƒ¢áƒ”áƒœáƒ¢áƒ˜ áƒ“áƒ áƒ•áƒáƒ©áƒ•áƒ”áƒœáƒáƒ— áƒšáƒáƒáƒ“áƒ”áƒ áƒ˜
+                document.body.classList.remove('loaded'); // áƒ™áƒáƒœáƒ¢áƒ”áƒœáƒ¢áƒ˜ áƒ˜áƒ›áƒáƒšáƒ”áƒ‘áƒ
+                if(loader) loader.classList.remove('hidden'); // áƒšáƒáƒáƒ“áƒ”áƒ áƒ˜ áƒ©áƒœáƒ“áƒ”áƒ‘áƒ
                 updateStaticUI();
                 setTimeout(() => {
                     renderBook();
                     setTimeout(() => {
-// უკან ვაჩენთ
+// áƒ£áƒ™áƒáƒœ áƒ•áƒáƒ©áƒ”áƒœáƒ—
                         if(loader) loader.classList.add('hidden');
                         document.body.classList.add('loaded');
                     }, 300);
@@ -266,7 +266,7 @@ async function initReaderMode() {
     if (editBtn) editBtn.style.display = '';
     initQuill();
     setupEditorEvents();
-// ✅ FINAL LOADING LOGIC
+// âœ… FINAL LOADING LOGIC
     const cachedData = localStorage.getItem('cached_book_' + CURRENT_BOOK_SLUG);
     let isCached = false;
     if (cachedData) {
@@ -277,12 +277,12 @@ async function initReaderMode() {
             isCached = true;
             document.fonts.ready.then(() => {
                 renderBook();
-// აქ ხდება სასწაული:
+// áƒáƒ¥ áƒ®áƒ“áƒ”áƒ‘áƒ áƒ¡áƒáƒ¡áƒ¬áƒáƒ£áƒšáƒ˜:
                 setTimeout(() => {
                     renderBook();
-// 1. ლოადერი ქრება
+// 1. áƒšáƒáƒáƒ“áƒ”áƒ áƒ˜ áƒ¥áƒ áƒ”áƒ‘áƒ
                     if(loader) loader.classList.add('hidden');
-// 2. კონტენტი ჩნდება (რბილად)
+// 2. áƒ™áƒáƒœáƒ¢áƒ”áƒœáƒ¢áƒ˜ áƒ©áƒœáƒ“áƒ”áƒ‘áƒ (áƒ áƒ‘áƒ˜áƒšáƒáƒ“)
                     document.body.classList.add('loaded');
                 }, 150);
             });
@@ -291,8 +291,8 @@ async function initReaderMode() {
     await loadBookData(CURRENT_BOOK_SLUG, isCached);
 
 }
-// მონაცემების მინიჭების დამხმარე ფუნქცია
-// მონაცემების მინიჭების დამხმარე ფუნქცია
+// áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ”áƒ‘áƒ˜áƒ¡ áƒ›áƒ˜áƒœáƒ˜áƒ­áƒ”áƒ‘áƒ˜áƒ¡ áƒ“áƒáƒ›áƒ®áƒ›áƒáƒ áƒ” áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ
+// áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ”áƒ‘áƒ˜áƒ¡ áƒ›áƒ˜áƒœáƒ˜áƒ­áƒ”áƒ‘áƒ˜áƒ¡ áƒ“áƒáƒ›áƒ®áƒ›áƒáƒ áƒ” áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ
 function applyBookData(data) {
     currentBookId = data.id;
     bookMeta = {
@@ -302,13 +302,13 @@ function applyBookData(data) {
         title_en: data.title_en,
         subtitle_en: data.subtitle_en
     };
-// ინგლისური მეტა პარაზიტულად ამოვიღოთ თუ არსებობს
+// áƒ˜áƒœáƒ’áƒšáƒ˜áƒ¡áƒ£áƒ áƒ˜ áƒ›áƒ”áƒ¢áƒ áƒžáƒáƒ áƒáƒ–áƒ˜áƒ¢áƒ£áƒšáƒáƒ“ áƒáƒ›áƒáƒ•áƒ˜áƒ¦áƒáƒ— áƒ—áƒ£ áƒáƒ áƒ¡áƒ”áƒ‘áƒáƒ‘áƒ¡
     if (data.chapters && data.chapters[0] && data.chapters[0].meta_en) {
         bookMeta.title_en = data.chapters[0].meta_en.title || data.title;
         bookMeta.subtitle_en = data.chapters[0].meta_en.subtitle || data.subtitle;
     }
     chaptersData = data.chapters || DEFAULT_CHAPTERS;
-// ❌ document.title აქედან ამოღებულია!
+// âŒ document.title áƒáƒ¥áƒ”áƒ“áƒáƒœ áƒáƒ›áƒáƒ¦áƒ”áƒ‘áƒ£áƒšáƒ˜áƒ!
 }
 async function loadBookData(slug, hasCacheRendered) {
     const loader = document.getElementById('book-loader');
@@ -317,7 +317,7 @@ async function loadBookData(slug, hasCacheRendered) {
         if (error) throw error;
         const newDataString = JSON.stringify(data);
         const cachedString = localStorage.getItem('cached_book_' + slug);
-// თუ ქეში გვქონდა და მონაცემი იგივეა -> არაფერს ვაკეთებთ (ლოადერი უკვე გაქრა initReaderMode-ში)
+// áƒ—áƒ£ áƒ¥áƒ”áƒ¨áƒ˜ áƒ’áƒ•áƒ¥áƒáƒœáƒ“áƒ áƒ“áƒ áƒ›áƒáƒœáƒáƒªáƒ”áƒ›áƒ˜ áƒ˜áƒ’áƒ˜áƒ•áƒ”áƒ -> áƒáƒ áƒáƒ¤áƒ”áƒ áƒ¡ áƒ•áƒáƒ™áƒ”áƒ—áƒ”áƒ‘áƒ— (áƒšáƒáƒáƒ“áƒ”áƒ áƒ˜ áƒ£áƒ™áƒ•áƒ” áƒ’áƒáƒ¥áƒ áƒ initReaderMode-áƒ¨áƒ˜)
         if (hasCacheRendered && newDataString === cachedString) {
             return;
         }
@@ -331,19 +331,19 @@ async function loadBookData(slug, hasCacheRendered) {
                     setTimeout(() => {
                         renderBook();
                         if(loader) loader.classList.add('hidden');
-                        document.body.classList.add('loaded'); // ✅ ეს ხაზი დაამატე!
+                        document.body.classList.add('loaded'); // âœ… áƒ”áƒ¡ áƒ®áƒáƒ–áƒ˜ áƒ“áƒáƒáƒ›áƒáƒ¢áƒ”!
                     }, 150);
                 });
             }, 10);
         } else {
-// სცენარი: ქეში იყო, მაგრამ სერვერზე ახალი ტექსტია
-            console.log("🔄 New content found, updating...");
+// áƒ¡áƒªáƒ”áƒœáƒáƒ áƒ˜: áƒ¥áƒ”áƒ¨áƒ˜ áƒ˜áƒ§áƒ, áƒ›áƒáƒ’áƒ áƒáƒ› áƒ¡áƒ”áƒ áƒ•áƒ”áƒ áƒ–áƒ” áƒáƒ®áƒáƒšáƒ˜ áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜áƒ
+            console.log("ðŸ”„ New content found, updating...");
             renderBook();
-// ლოადერი აქ უკვე გამქრალია, ამიტომ ხელს არ ვახლებთ
+// áƒšáƒáƒáƒ“áƒ”áƒ áƒ˜ áƒáƒ¥ áƒ£áƒ™áƒ•áƒ” áƒ’áƒáƒ›áƒ¥áƒ áƒáƒšáƒ˜áƒ, áƒáƒ›áƒ˜áƒ¢áƒáƒ› áƒ®áƒ”áƒšáƒ¡ áƒáƒ  áƒ•áƒáƒ®áƒšáƒ”áƒ‘áƒ—
         }
     } catch (err) {
         console.error("Load Error:", err);
-// დაზღვევა: ერორის დროს მაინც გავაქროთ ლოადერი, რომ არ გაიჭედოს
+// áƒ“áƒáƒ–áƒ¦áƒ•áƒ”áƒ•áƒ: áƒ”áƒ áƒáƒ áƒ˜áƒ¡ áƒ“áƒ áƒáƒ¡ áƒ›áƒáƒ˜áƒœáƒª áƒ’áƒáƒ•áƒáƒ¥áƒ áƒáƒ— áƒšáƒáƒáƒ“áƒ”áƒ áƒ˜, áƒ áƒáƒ› áƒáƒ  áƒ’áƒáƒ˜áƒ­áƒ”áƒ“áƒáƒ¡
         if(loader) loader.classList.add('hidden');
         if (!hasCacheRendered) {
             if (FORCED_SLUG) alert("Book not found!");
@@ -372,15 +372,15 @@ async function saveToSupabase() {
 async function uploadCoverToStorage(file) {
     if (!file) return null;
 
-    // ფაილის უნიკალური სახელი (დრო + ორიგინალი სახელი, რომ არ მოხდეს დუბლირება)
+    // áƒ¤áƒáƒ˜áƒšáƒ˜áƒ¡ áƒ£áƒœáƒ˜áƒ™áƒáƒšáƒ£áƒ áƒ˜ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜ (áƒ“áƒ áƒ + áƒáƒ áƒ˜áƒ’áƒ˜áƒœáƒáƒšáƒ˜ áƒ¡áƒáƒ®áƒ”áƒšáƒ˜, áƒ áƒáƒ› áƒáƒ  áƒ›áƒáƒ®áƒ“áƒ”áƒ¡ áƒ“áƒ£áƒ‘áƒšáƒ˜áƒ áƒ”áƒ‘áƒ)
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
     const filePath = `covers/${fileName}`;
 
-    // ატვირთვა Supabase Storage-ში
+    // áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ Supabase Storage-áƒ¨áƒ˜
     const { data, error } = await sbClient
         .storage
-        .from('covers') // დარწმუნდი რომ bucket-ს ზუსტად 'covers' დაარქვი
+        .from('covers') // áƒ“áƒáƒ áƒ¬áƒ›áƒ£áƒœáƒ“áƒ˜ áƒ áƒáƒ› bucket-áƒ¡ áƒ–áƒ£áƒ¡áƒ¢áƒáƒ“ 'covers' áƒ“áƒáƒáƒ áƒ¥áƒ•áƒ˜
         .upload(fileName, file);
 
     if (error) {
@@ -389,7 +389,7 @@ async function uploadCoverToStorage(file) {
         return null;
     }
 
-    // საჯარო ლინკის მიღება
+    // áƒ¡áƒáƒ¯áƒáƒ áƒ áƒšáƒ˜áƒœáƒ™áƒ˜áƒ¡ áƒ›áƒ˜áƒ¦áƒ”áƒ‘áƒ
     const { data: publicData } = sbClient
         .storage
         .from('covers')
@@ -397,29 +397,29 @@ async function uploadCoverToStorage(file) {
 
     return publicData.publicUrl;
 }
-// ✅ NEW: მხოლოდ სათაურების და ინტერფეისის განახლება (ულტრა სწრაფი)
-// ✅ NEW: Smart UI Update (Checks before writing to prevent blinking)
-// ✅ NEW: Smart UI Update
+// âœ… NEW: áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ¡áƒáƒ—áƒáƒ£áƒ áƒ”áƒ‘áƒ˜áƒ¡ áƒ“áƒ áƒ˜áƒœáƒ¢áƒ”áƒ áƒ¤áƒ”áƒ˜áƒ¡áƒ˜áƒ¡ áƒ’áƒáƒœáƒáƒ®áƒšáƒ”áƒ‘áƒ (áƒ£áƒšáƒ¢áƒ áƒ áƒ¡áƒ¬áƒ áƒáƒ¤áƒ˜)
+// âœ… NEW: Smart UI Update (Checks before writing to prevent blinking)
+// âœ… NEW: Smart UI Update
 function updateStaticUI() {
     const siteTitleEl = document.getElementById('site-main-title');
     const siteSubEl = document.getElementById('site-sub-title');
     const sidebarHeader = document.getElementById('sidebar-main-title');
-// ტექსტების მომზადება
+// áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ›áƒáƒ›áƒ–áƒáƒ“áƒ”áƒ‘áƒ
     const displayTitle = (currentLanguage === 'en') ? (bookMeta.title_en || bookMeta.title) : bookMeta.title;
     const displaySubtitle = (currentLanguage === 'en') ? (bookMeta.subtitle_en || bookMeta.subtitle) : bookMeta.subtitle;
-    const sidebarTitleText = (currentLanguage === 'en') ? "CONTENTS" : "სარჩევი";
-// დამხმარე ფუნქცია: მხოლოდ მაშინ წერს, თუ ტექსტი განსხვავებულია
+    const sidebarTitleText = (currentLanguage === 'en') ? "CONTENTS" : "áƒ¡áƒáƒ áƒ©áƒ”áƒ•áƒ˜";
+// áƒ“áƒáƒ›áƒ®áƒ›áƒáƒ áƒ” áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ: áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ›áƒáƒ¨áƒ˜áƒœ áƒ¬áƒ”áƒ áƒ¡, áƒ—áƒ£ áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜ áƒ’áƒáƒœáƒ¡áƒ®áƒ•áƒáƒ•áƒ”áƒ‘áƒ£áƒšáƒ˜áƒ
     const safeSetText = (el, text) => {
         if (el && el.innerText !== text) {
             el.innerText = text;
         }
     };
-// DOM-ის განახლება უსაფრთხოდ
+// DOM-áƒ˜áƒ¡ áƒ’áƒáƒœáƒáƒ®áƒšáƒ”áƒ‘áƒ áƒ£áƒ¡áƒáƒ¤áƒ áƒ—áƒ®áƒáƒ“
     safeSetText(siteTitleEl, displayTitle || "");
     safeSetText(siteSubEl, displaySubtitle || "");
     safeSetText(sidebarHeader, sidebarTitleText);
-// ❌ წაშლილია: document.title-ის განახლება
-// ამ ხაზებს თუ წაშლი, ბრაუზერის ტაბზე დარჩება ის, რაც SEO-ში გაქვს გაწერილი
+// âŒ áƒ¬áƒáƒ¨áƒšáƒ˜áƒšáƒ˜áƒ: document.title-áƒ˜áƒ¡ áƒ’áƒáƒœáƒáƒ®áƒšáƒ”áƒ‘áƒ
+// áƒáƒ› áƒ®áƒáƒ–áƒ”áƒ‘áƒ¡ áƒ—áƒ£ áƒ¬áƒáƒ¨áƒšáƒ˜, áƒ‘áƒ áƒáƒ£áƒ–áƒ”áƒ áƒ˜áƒ¡ áƒ¢áƒáƒ‘áƒ–áƒ” áƒ“áƒáƒ áƒ©áƒ”áƒ‘áƒ áƒ˜áƒ¡, áƒ áƒáƒª SEO-áƒ¨áƒ˜ áƒ’áƒáƒ¥áƒ•áƒ¡ áƒ’áƒáƒ¬áƒ”áƒ áƒ˜áƒšáƒ˜
     /* if (document.title !== `${displayTitle} - Zurab Kostava`) {
     document.title = `${displayTitle} - Zurab Kostava`;
     }
@@ -432,16 +432,16 @@ function renderBook() {
 
     const { pages, chapterStartMap } = generateBookStructure();
 
-    // ✅ ახალი ლოგიკა: მობილურზე თითო გვერდი თითო ფურცელზე
+    // âœ… áƒáƒ®áƒáƒšáƒ˜ áƒšáƒáƒ’áƒ˜áƒ™áƒ: áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” áƒ—áƒ˜áƒ—áƒ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ áƒ—áƒ˜áƒ—áƒ áƒ¤áƒ£áƒ áƒªáƒ”áƒšáƒ–áƒ”
     const isMobile = window.innerWidth <= 768;
 
-    // თუ მობილურია, ფურცლების რაოდენობა = გვერდების რაოდენობას
-    // თუ დესკტოპია, ფურცლების რაოდენობა = გვერდები / 2
+    // áƒ—áƒ£ áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ˜áƒ, áƒ¤áƒ£áƒ áƒªáƒšáƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒáƒáƒ“áƒ”áƒœáƒáƒ‘áƒ = áƒ’áƒ•áƒ”áƒ áƒ“áƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒáƒáƒ“áƒ”áƒœáƒáƒ‘áƒáƒ¡
+    // áƒ—áƒ£ áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ˜áƒ, áƒ¤áƒ£áƒ áƒªáƒšáƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒáƒáƒ“áƒ”áƒœáƒáƒ‘áƒ = áƒ’áƒ•áƒ”áƒ áƒ“áƒ”áƒ‘áƒ˜ / 2
     const totalPapers = isMobile ? pages.length : Math.ceil(pages.length / 2);
 
-    // პროგრეს ბარისთვის (Map)
+    // áƒžáƒ áƒáƒ’áƒ áƒ”áƒ¡ áƒ‘áƒáƒ áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡ (Map)
     for (let p = 0; p < totalPapers; p++) {
-        // მობილურზე და დესკტოპზე ინდექსაცია განსხვავებულია
+        // áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” áƒ“áƒ áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ–áƒ” áƒ˜áƒœáƒ“áƒ”áƒ¥áƒ¡áƒáƒªáƒ˜áƒ áƒ’áƒáƒœáƒ¡áƒ®áƒ•áƒáƒ•áƒ”áƒ‘áƒ£áƒšáƒ˜áƒ
         const face = isMobile ? p : p * 2;
 
         let chIdx = 0;
@@ -455,11 +455,11 @@ function renderBook() {
         let front, back;
 
         if (isMobile) {
-            // 📱 მობილური: ყველა გვერდი არის "Front"
+            // ðŸ“± áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ˜: áƒ§áƒ•áƒ”áƒšáƒ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ áƒáƒ áƒ˜áƒ¡ "Front"
             front = pages[i];
-            back = null; // უკანა მხარე არ გვჭირდება
+            back = null; // áƒ£áƒ™áƒáƒœáƒ áƒ›áƒ®áƒáƒ áƒ” áƒáƒ  áƒ’áƒ•áƒ­áƒ˜áƒ áƒ“áƒ”áƒ‘áƒ
         } else {
-            // 💻 დესკტოპი: წყვილები
+            // ðŸ’» áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ˜: áƒ¬áƒ§áƒ•áƒ˜áƒšáƒ”áƒ‘áƒ˜
             front = pages[i * 2];
             back = pages[i * 2 + 1];
         }
@@ -471,7 +471,7 @@ function renderBook() {
         let fClass = 'front'; if (front && front.isCover) fClass += ' hardcover-front';
         let bClass = 'back'; if (back && back.isCover) bClass += ' hardcover-back';
 
-        // გვერდის ნომრების ლოგიკა
+        // áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜áƒ¡ áƒœáƒáƒ›áƒ áƒ”áƒ‘áƒ˜áƒ¡ áƒšáƒáƒ’áƒ˜áƒ™áƒ
         const frontNum = isMobile ? (i + 1) : (i * 2 + 1);
         const backNum = isMobile ? '' : (i * 2 + 2);
 
@@ -490,19 +490,19 @@ function renderBook() {
     buildDynamicSidebar(totalPapers);
     initPhysics(totalPapers);
 }
-// ✅ NEW: Helper to retrieve correct content based on language
-// ✅ NEW: Helper to retrieve correct content
-// useDraft = true (ედიტორისთვის), false (მკითხველისთვის)
+// âœ… NEW: Helper to retrieve correct content based on language
+// âœ… NEW: Helper to retrieve correct content
+// useDraft = true (áƒ”áƒ“áƒ˜áƒ¢áƒáƒ áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡), false (áƒ›áƒ™áƒ˜áƒ—áƒ®áƒ•áƒ”áƒšáƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡)
 function getChapterContent(chapter, lang, useDraft = false) {
     if (useDraft) {
-        // ედიტორი: ჯერ ვამოწმებთ დრაფტს, თუ არ არის -> გამოქვეყნებულს
+        // áƒ”áƒ“áƒ˜áƒ¢áƒáƒ áƒ˜: áƒ¯áƒ”áƒ  áƒ•áƒáƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ— áƒ“áƒ áƒáƒ¤áƒ¢áƒ¡, áƒ—áƒ£ áƒáƒ  áƒáƒ áƒ˜áƒ¡ -> áƒ’áƒáƒ›áƒáƒ¥áƒ•áƒ”áƒ§áƒœáƒ”áƒ‘áƒ£áƒšáƒ¡
         if (lang === 'en') {
             return chapter.draft_content_en !== undefined ? chapter.draft_content_en : (chapter.content_en || "");
         } else {
             return chapter.draft_content !== undefined ? chapter.draft_content : (chapter.content || "");
         }
     } else {
-        // მკითხველი: მხოლოდ გამოქვეყნებული
+        // áƒ›áƒ™áƒ˜áƒ—áƒ®áƒ•áƒ”áƒšáƒ˜: áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ’áƒáƒ›áƒáƒ¥áƒ•áƒ”áƒ§áƒœáƒ”áƒ‘áƒ£áƒšáƒ˜
         if (lang === 'en') {
             return chapter.content_en || "<p><i>(To be Continued)</i></p>";
         }
@@ -529,10 +529,10 @@ function generateBookStructure() {
     let pages = [];
     let map = [0];
 
-    // ✅ 1. ვამოწმებთ, არის თუ არა ადმინი
+    // âœ… 1. áƒ•áƒáƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ—, áƒáƒ áƒ˜áƒ¡ áƒ—áƒ£ áƒáƒ áƒ áƒáƒ“áƒ›áƒ˜áƒœáƒ˜
     const isAdmin = sessionStorage.getItem('is_admin') === 'true';
 
-    // Cover Logic (იგივე რჩება)
+    // Cover Logic (áƒ˜áƒ’áƒ˜áƒ•áƒ” áƒ áƒ©áƒ”áƒ‘áƒ)
     let displayTitle = bookMeta.title;
     let displaySubtitle = bookMeta.subtitle;
     if (currentLanguage === 'en') {
@@ -544,7 +544,7 @@ function generateBookStructure() {
         : `<div class="cover-design"><h1>${displayTitle}</h1><p>${displaySubtitle}</p></div>`;
     pages.push({ html: coverHTML, isCover: true });
 
-    // ✅ 2. კონტენტის გენერაცია
+    // âœ… 2. áƒ™áƒáƒœáƒ¢áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ’áƒ”áƒœáƒ”áƒ áƒáƒªáƒ˜áƒ
     chaptersData.forEach((ch) => {
         const contentToRender = getChapterContent(ch, currentLanguage, isAdmin);
 
@@ -554,8 +554,8 @@ function generateBookStructure() {
 
         const hyph = applyCustomGeorgianHyphenation(contentToRender);
 
-        // ✅ CHANGE: გადავცემთ მიმდინარე გვერდების რაოდენობას (pages.length)
-        // ეს საჭიროა, რომ გავიგოთ მარცხენა გვერდზე ვართ თუ მარჯვენაზე
+        // âœ… CHANGE: áƒ’áƒáƒ“áƒáƒ•áƒªáƒ”áƒ›áƒ— áƒ›áƒ˜áƒ›áƒ“áƒ˜áƒœáƒáƒ áƒ” áƒ’áƒ•áƒ”áƒ áƒ“áƒ”áƒ‘áƒ˜áƒ¡ áƒ áƒáƒáƒ“áƒ”áƒœáƒáƒ‘áƒáƒ¡ (pages.length)
+        // áƒ”áƒ¡ áƒ¡áƒáƒ­áƒ˜áƒ áƒáƒ, áƒ áƒáƒ› áƒ’áƒáƒ•áƒ˜áƒ’áƒáƒ— áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ áƒ’áƒ•áƒ”áƒ áƒ“áƒ–áƒ” áƒ•áƒáƒ áƒ— áƒ—áƒ£ áƒ›áƒáƒ áƒ¯áƒ•áƒ”áƒœáƒáƒ–áƒ”
         const pgs = paginateContent(hyph, h, pages.length);
 
         pgs.forEach(p => pages.push({ html: p, isCover: false }));
@@ -570,7 +570,7 @@ function buildDynamicSidebar(totalPapers) {
 
     // Cover
     const coverLi = document.createElement('li');
-    coverLi.innerText = (currentLanguage === 'en') ? "Cover" : "გარეკანი";
+    coverLi.innerText = (currentLanguage === 'en') ? "Cover" : "áƒ’áƒáƒ áƒ”áƒ™áƒáƒœáƒ˜";
     coverLi.className = "toc-h1";
     coverLi.setAttribute('data-virtual-id', -1);
 
@@ -590,7 +590,7 @@ function buildDynamicSidebar(totalPapers) {
     const papers = document.querySelectorAll('.paper');
 
     papers.forEach((paper, paperIndex) => {
-        // ვეძებთ სათაურებს როგორც Front, ისე Back მხარეს (დესკტოპისთვის)
+        // áƒ•áƒ”áƒ«áƒ”áƒ‘áƒ— áƒ¡áƒáƒ—áƒáƒ£áƒ áƒ”áƒ‘áƒ¡ áƒ áƒáƒ’áƒáƒ áƒª Front, áƒ˜áƒ¡áƒ” Back áƒ›áƒ®áƒáƒ áƒ”áƒ¡ (áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡)
         const headings = paper.querySelectorAll('h1, h2, h3');
 
         headings.forEach(heading => {
@@ -601,21 +601,21 @@ function buildDynamicSidebar(totalPapers) {
             li.innerText = fullText ? fullText : heading.innerText;
             li.classList.add(`toc-${heading.tagName.toLowerCase()}`);
 
-            // მობილურზე "Back" არ არსებობს, ყველაფერი Front-ია
+            // áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” "Back" áƒáƒ  áƒáƒ áƒ¡áƒ”áƒ‘áƒáƒ‘áƒ¡, áƒ§áƒ•áƒ”áƒšáƒáƒ¤áƒ”áƒ áƒ˜ Front-áƒ˜áƒ
             const isBack = isMobile ? false : (heading.closest('.back') !== null);
             const side = isBack ? 'back' : 'front';
 
-            // ID სკროლისთვის
+            // ID áƒ¡áƒ™áƒ áƒáƒšáƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
             let virtualId;
             if (isMobile) {
-                virtualId = paperIndex; // მობილურზე მარტივია: 1 ფურცელი = 1 ID
+                virtualId = paperIndex; // áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” áƒ›áƒáƒ áƒ¢áƒ˜áƒ•áƒ˜áƒ: 1 áƒ¤áƒ£áƒ áƒªáƒ”áƒšáƒ˜ = 1 ID
             } else {
                 virtualId = (paperIndex * 2) + (isBack ? 1 : 0);
             }
 
             li.setAttribute('data-virtual-id', virtualId);
 
-            // ეს უბრალოდ ვიზუალური ნომრისთვის (თუ დაგჭირდა)
+            // áƒ”áƒ¡ áƒ£áƒ‘áƒ áƒáƒšáƒáƒ“ áƒ•áƒ˜áƒ–áƒ£áƒáƒšáƒ£áƒ áƒ˜ áƒœáƒáƒ›áƒ áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡ (áƒ—áƒ£ áƒ“áƒáƒ’áƒ­áƒ˜áƒ áƒ“áƒ)
             li.setAttribute('data-target-page', paperIndex + 1);
 
             li.onclick = () => {
@@ -635,14 +635,14 @@ function buildDynamicSidebar(totalPapers) {
 }
 // UTILS (Hyphenation and Pagination - UNCHANGED)
 function applyCustomGeorgianHyphenation(html) { const tempDiv = document.createElement('div'); tempDiv.innerHTML = html; function traverse(node) { if (node.nodeType === 3) { const words = node.nodeValue.split(' '); const processedWords = words.map(word => hyphenateWord(word)); node.nodeValue = processedWords.join(' '); } else { for (let child of node.childNodes) traverse(child); } } traverse(tempDiv); return tempDiv.innerHTML; }
-function hyphenateWord(word) { if (word.length < 5) return word; if (!/[ა-ჰ]/.test(word)) return word; const vowels = "აეიოუ"; const isV = (c) => vowels.includes(c); const isC = (c) => !vowels.includes(c) && c !== undefined; let result = ""; let chars = word.split(''); for (let i = 0; i < chars.length; i++) { result += chars[i]; if (i >= chars.length - 2) continue; if (i < 1) continue; let cur = chars[i], next = chars[i+1], after = chars[i+2], prev = chars[i-1]; if (isV(cur) && isV(next)) { result += '\u00AD'; continue; } if (isV(cur) && isC(next) && isV(after)) { result += '\u00AD'; continue; } if (isC(cur) && isC(next)) { if (isV(prev)) { result += '\u00AD'; continue; } } } return result; }
+function hyphenateWord(word) { if (word.length < 5) return word; if (!/[áƒ-áƒ°]/.test(word)) return word; const vowels = "áƒáƒ”áƒ˜áƒáƒ£"; const isV = (c) => vowels.includes(c); const isC = (c) => !vowels.includes(c) && c !== undefined; let result = ""; let chars = word.split(''); for (let i = 0; i < chars.length; i++) { result += chars[i]; if (i >= chars.length - 2) continue; if (i < 1) continue; let cur = chars[i], next = chars[i+1], after = chars[i+2], prev = chars[i-1]; if (isV(cur) && isV(next)) { result += '\u00AD'; continue; } if (isV(cur) && isC(next) && isV(after)) { result += '\u00AD'; continue; } if (isC(cur) && isC(next)) { if (isV(prev)) { result += '\u00AD'; continue; } } } return result; }
 // ==========================================
 // SMART PAGINATION (HANDLES FULL-PAGE IMAGES)
 // ==========================================
 // ==========================================
 // SMART PAGINATION (AUTO-LEFT IMAGE)
 // ==========================================
-// startPageIndex - სულ რამდენი გვერდი აქვს წიგნს ამ თავამდე
+// startPageIndex - áƒ¡áƒ£áƒš áƒ áƒáƒ›áƒ“áƒ”áƒœáƒ˜ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ áƒáƒ¥áƒ•áƒ¡ áƒ¬áƒ˜áƒ’áƒœáƒ¡ áƒáƒ› áƒ—áƒáƒ•áƒáƒ›áƒ“áƒ”
 function paginateContent(htmlContent, maxContentHeight, startPageIndex = 0) {
     const measureContainer = document.getElementById('measure-container');
     measureContainer.innerHTML = '';
@@ -664,37 +664,37 @@ function paginateContent(htmlContent, maxContentHeight, startPageIndex = 0) {
     while (nodesQueue.length > 0) {
         let node = nodesQueue.shift();
 
-        // 1. ვამოწმებთ სურათს
+        // 1. áƒ•áƒáƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ— áƒ¡áƒ£áƒ áƒáƒ—áƒ¡
         const imgElement = node.querySelector('img') || (node.tagName === 'IMG' ? node : null);
 
         if (imgElement) {
-            // A. თუ მიმდინარე გვერდზე ტექსტია, ვხურავთ ამ გვერდს
+            // A. áƒ—áƒ£ áƒ›áƒ˜áƒ›áƒ“áƒ˜áƒœáƒáƒ áƒ” áƒ’áƒ•áƒ”áƒ áƒ“áƒ–áƒ” áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜áƒ, áƒ•áƒ®áƒ£áƒ áƒáƒ•áƒ— áƒáƒ› áƒ’áƒ•áƒ”áƒ áƒ“áƒ¡
             if (currentPageContent.innerHTML.trim() !== '') {
                 pages.push(currentPageContent.innerHTML);
                 currentPageContent = document.createElement('div');
             }
 
-            // B. ✅ მარცხენა მხარის ლოგიკა (მხოლოდ დესკტოპზე)
+            // B. âœ… áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ áƒ›áƒ®áƒáƒ áƒ˜áƒ¡ áƒšáƒáƒ’áƒ˜áƒ™áƒ (áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ–áƒ”)
             if (window.innerWidth > 768) {
-                // ვითვლით მიმდინარე აბსოლუტურ ინდექსს
-                // startPageIndex (წინა თავების გვერდები) + pages.length (ამ თავის უკვე შექმნილი გვერდები)
+                // áƒ•áƒ˜áƒ—áƒ•áƒšáƒ˜áƒ— áƒ›áƒ˜áƒ›áƒ“áƒ˜áƒœáƒáƒ áƒ” áƒáƒ‘áƒ¡áƒáƒšáƒ£áƒ¢áƒ£áƒ  áƒ˜áƒœáƒ“áƒ”áƒ¥áƒ¡áƒ¡
+                // startPageIndex (áƒ¬áƒ˜áƒœáƒ áƒ—áƒáƒ•áƒ”áƒ‘áƒ˜áƒ¡ áƒ’áƒ•áƒ”áƒ áƒ“áƒ”áƒ‘áƒ˜) + pages.length (áƒáƒ› áƒ—áƒáƒ•áƒ˜áƒ¡ áƒ£áƒ™áƒ•áƒ” áƒ¨áƒ”áƒ¥áƒ›áƒœáƒ˜áƒšáƒ˜ áƒ’áƒ•áƒ”áƒ áƒ“áƒ”áƒ‘áƒ˜)
                 const currentTotalPages = startPageIndex + pages.length;
 
-                // 0 = გარეკანი (მარჯვენა/Front)
-                // 1 = მარცხენა (Back)
-                // 2 = მარჯვენა (Front)
-                // 3 = მარცხენა (Back)
-                // წესი: მარცხენა გვერდებს ყოველთვის აქვთ კენტი (Odd) ინდექსი.
-                // თუ currentTotalPages არის ლუწი (მაგ: 2), ესე იგი შემდეგი გვერდი იქნება 2 (მარჯვენა).
-                // ჩვენ კი გვინდა მარცხენა. ამიტომ ვამატებთ სპეისერს.
+                // 0 = áƒ’áƒáƒ áƒ”áƒ™áƒáƒœáƒ˜ (áƒ›áƒáƒ áƒ¯áƒ•áƒ”áƒœáƒ/Front)
+                // 1 = áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ (Back)
+                // 2 = áƒ›áƒáƒ áƒ¯áƒ•áƒ”áƒœáƒ (Front)
+                // 3 = áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ (Back)
+                // áƒ¬áƒ”áƒ¡áƒ˜: áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ áƒ’áƒ•áƒ”áƒ áƒ“áƒ”áƒ‘áƒ¡ áƒ§áƒáƒ•áƒ”áƒšáƒ—áƒ•áƒ˜áƒ¡ áƒáƒ¥áƒ•áƒ— áƒ™áƒ”áƒœáƒ¢áƒ˜ (Odd) áƒ˜áƒœáƒ“áƒ”áƒ¥áƒ¡áƒ˜.
+                // áƒ—áƒ£ currentTotalPages áƒáƒ áƒ˜áƒ¡ áƒšáƒ£áƒ¬áƒ˜ (áƒ›áƒáƒ’: 2), áƒ”áƒ¡áƒ” áƒ˜áƒ’áƒ˜ áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’áƒ˜ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ áƒ˜áƒ¥áƒœáƒ”áƒ‘áƒ 2 (áƒ›áƒáƒ áƒ¯áƒ•áƒ”áƒœáƒ).
+                // áƒ©áƒ•áƒ”áƒœ áƒ™áƒ˜ áƒ’áƒ•áƒ˜áƒœáƒ“áƒ áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ. áƒáƒ›áƒ˜áƒ¢áƒáƒ› áƒ•áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ— áƒ¡áƒžáƒ”áƒ˜áƒ¡áƒ”áƒ áƒ¡.
 
                 if (currentTotalPages % 2 === 0) {
-                    // ვამატებთ ცარიელ გვერდს
+                    // áƒ•áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ— áƒªáƒáƒ áƒ˜áƒ”áƒš áƒ’áƒ•áƒ”áƒ áƒ“áƒ¡
                     pages.push('<div class="spacer-page" style="width:100%;height:100%;"></div>');
                 }
             }
 
-            // C. ვამატებთ სურათს (ახლა ის აუცილებლად მარცხნივ მოხვდება)
+            // C. áƒ•áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ— áƒ¡áƒ£áƒ áƒáƒ—áƒ¡ (áƒáƒ®áƒšáƒ áƒ˜áƒ¡ áƒáƒ£áƒªáƒ˜áƒšáƒ”áƒ‘áƒšáƒáƒ“ áƒ›áƒáƒ áƒªáƒ®áƒœáƒ˜áƒ• áƒ›áƒáƒ®áƒ•áƒ“áƒ”áƒ‘áƒ)
             const imgSrc = imgElement.getAttribute('src');
             const fullPageImgHTML = `<div class="full-page-img-wrapper"><img src="${imgSrc}"></div>`;
             pages.push(fullPageImgHTML);
@@ -702,7 +702,7 @@ function paginateContent(htmlContent, maxContentHeight, startPageIndex = 0) {
             continue;
         }
 
-        // 2. ჩვეულებრივი ტექსტის ლოგიკა
+        // 2. áƒ©áƒ•áƒ”áƒ£áƒšáƒ”áƒ‘áƒ áƒ˜áƒ•áƒ˜ áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜áƒ¡ áƒšáƒáƒ’áƒ˜áƒ™áƒ
         innerMeasurer.appendChild(node.cloneNode(true));
 
         if (innerMeasurer.offsetHeight <= maxContentHeight) {
@@ -732,7 +732,7 @@ function paginateContent(htmlContent, maxContentHeight, startPageIndex = 0) {
 // OPTIMIZED SPLIT FUNCTION (BINARY SEARCH)
 // ==========================================
 function splitNodeByWords(originalNode, containerState, limit) {
-    // 1. ვალიდაცია: მხოლოდ ტექსტურ ბლოკებს ვჭრით
+    // 1. áƒ•áƒáƒšáƒ˜áƒ“áƒáƒªáƒ˜áƒ: áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ£áƒ  áƒ‘áƒšáƒáƒ™áƒ”áƒ‘áƒ¡ áƒ•áƒ­áƒ áƒ˜áƒ—
     if (originalNode.tagName !== 'P' &&
         !originalNode.tagName.startsWith('H') &&
         originalNode.tagName !== 'BLOCKQUOTE') {
@@ -740,10 +740,10 @@ function splitNodeByWords(originalNode, containerState, limit) {
     }
 
     const type = originalNode.tagName;
-    const fullText = originalNode.innerText; // ინახავს სრულ ტექსტს TOC-ისთვის
-    const words = originalNode.innerHTML.split(' '); // სიტყვების მასივი
+    const fullText = originalNode.innerText; // áƒ˜áƒœáƒáƒ®áƒáƒ•áƒ¡ áƒ¡áƒ áƒ£áƒš áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ¡ TOC-áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
+    const words = originalNode.innerHTML.split(' '); // áƒ¡áƒ˜áƒ¢áƒ§áƒ•áƒ”áƒ‘áƒ˜áƒ¡ áƒ›áƒáƒ¡áƒ˜áƒ•áƒ˜
 
-    // დროებითი ნოუდი გაზომვისთვის
+    // áƒ“áƒ áƒáƒ”áƒ‘áƒ˜áƒ—áƒ˜ áƒœáƒáƒ£áƒ“áƒ˜ áƒ’áƒáƒ–áƒáƒ›áƒ•áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
     const tempNode = document.createElement(type);
     tempNode.className = originalNode.className;
     containerState.appendChild(tempNode);
@@ -752,35 +752,35 @@ function splitNodeByWords(originalNode, containerState, limit) {
     let high = words.length;
     let bestFitIndex = 0;
 
-    // 2. ბინარული ძებნა (Binary Search) - აჩქარებს პროცესს
+    // 2. áƒ‘áƒ˜áƒœáƒáƒ áƒ£áƒšáƒ˜ áƒ«áƒ”áƒ‘áƒœáƒ (Binary Search) - áƒáƒ©áƒ¥áƒáƒ áƒ”áƒ‘áƒ¡ áƒžáƒ áƒáƒªáƒ”áƒ¡áƒ¡
     while (low <= high) {
         const mid = Math.floor((low + high) / 2);
         const testStr = words.slice(0, mid).join(' ');
 
         tempNode.innerHTML = testStr;
 
-        // ვამოწმებთ, გასცდა თუ არა ლიმიტს
+        // áƒ•áƒáƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ—, áƒ’áƒáƒ¡áƒªáƒ“áƒ áƒ—áƒ£ áƒáƒ áƒ áƒšáƒ˜áƒ›áƒ˜áƒ¢áƒ¡
         if (containerState.offsetHeight <= limit) {
-            bestFitIndex = mid; // ეს რაოდენობა ეტევა, ვცადოთ მეტი
+            bestFitIndex = mid; // áƒ”áƒ¡ áƒ áƒáƒáƒ“áƒ”áƒœáƒáƒ‘áƒ áƒ”áƒ¢áƒ”áƒ•áƒ, áƒ•áƒªáƒáƒ“áƒáƒ— áƒ›áƒ”áƒ¢áƒ˜
             low = mid + 1;
         } else {
-            high = mid - 1; // არ ეტევა, ვცადოთ ნაკლები
+            high = mid - 1; // áƒáƒ  áƒ”áƒ¢áƒ”áƒ•áƒ, áƒ•áƒªáƒáƒ“áƒáƒ— áƒœáƒáƒ™áƒšáƒ”áƒ‘áƒ˜
         }
     }
 
-    // ვშლით დროებით ელემენტს
+    // áƒ•áƒ¨áƒšáƒ˜áƒ— áƒ“áƒ áƒáƒ”áƒ‘áƒ˜áƒ— áƒ”áƒšáƒ”áƒ›áƒ”áƒœáƒ¢áƒ¡
     containerState.removeChild(tempNode);
 
-    // 3. თუ არაფერი არ ჩაეტია (ძალიან ვიწრო ადგილია ან დიდი სიტყვა)
+    // 3. áƒ—áƒ£ áƒáƒ áƒáƒ¤áƒ”áƒ áƒ˜ áƒáƒ  áƒ©áƒáƒ”áƒ¢áƒ˜áƒ (áƒ«áƒáƒšáƒ˜áƒáƒœ áƒ•áƒ˜áƒ¬áƒ áƒ áƒáƒ“áƒ’áƒ˜áƒšáƒ˜áƒ áƒáƒœ áƒ“áƒ˜áƒ“áƒ˜ áƒ¡áƒ˜áƒ¢áƒ§áƒ•áƒ)
     if (bestFitIndex === 0) {
         return { fittedNode: null, remainingNode: originalNode };
     }
 
-    // 4. შედეგის ფორმირება
+    // 4. áƒ¨áƒ”áƒ“áƒ”áƒ’áƒ˜áƒ¡ áƒ¤áƒáƒ áƒ›áƒ˜áƒ áƒ”áƒ‘áƒ
     const fittedNode = document.createElement(type);
     fittedNode.innerHTML = words.slice(0, bestFitIndex).join(' ');
     fittedNode.className = originalNode.className;
-    // ატრიბუტი სარჩევისთვის (მხოლოდ პირველ ნაწილს სჭირდება)
+    // áƒáƒ¢áƒ áƒ˜áƒ‘áƒ£áƒ¢áƒ˜ áƒ¡áƒáƒ áƒ©áƒ”áƒ•áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡ (áƒ›áƒ®áƒáƒšáƒáƒ“ áƒžáƒ˜áƒ áƒ•áƒ”áƒš áƒœáƒáƒ¬áƒ˜áƒšáƒ¡ áƒ¡áƒ­áƒ˜áƒ áƒ“áƒ”áƒ‘áƒ)
     fittedNode.setAttribute('data-full-text', fullText);
 
     let remainingNode = null;
@@ -788,7 +788,7 @@ function splitNodeByWords(originalNode, containerState, limit) {
         remainingNode = document.createElement(type);
         remainingNode.innerHTML = words.slice(bestFitIndex).join(' ');
         remainingNode.className = originalNode.className;
-        remainingNode.classList.add('split-continuation'); // CSS-ისთვის
+        remainingNode.classList.add('split-continuation'); // CSS-áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
     }
 
     return { fittedNode, remainingNode };
@@ -808,48 +808,48 @@ function initPhysics(totalPapers) {
     const papers = Array.from(document.querySelectorAll('.paper'));
     const bookContainer = document.getElementById('book');
 
-    // 1. პოზიციის აღდგენა (LocalStorage)
+    // 1. áƒžáƒáƒ–áƒ˜áƒªáƒ˜áƒ˜áƒ¡ áƒáƒ¦áƒ“áƒ’áƒ”áƒœáƒ (LocalStorage)
     const storageKey = 'book_cursor_' + CURRENT_BOOK_SLUG;
     const savedPage = localStorage.getItem(storageKey);
     let savedLocation = savedPage ? parseInt(savedPage) : null;
 
-    // 2. URL-ის შემოწმება (?ch=...)
+    // 2. URL-áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ (?ch=...)
     const urlParams = new URLSearchParams(window.location.search);
     const targetChParam = parseInt(urlParams.get('ch'));
 
-    // 3. პრიორიტეტების დალაგება
+    // 3. áƒžáƒ áƒ˜áƒáƒ áƒ˜áƒ¢áƒ”áƒ¢áƒ”áƒ‘áƒ˜áƒ¡ áƒ“áƒáƒšáƒáƒ’áƒ”áƒ‘áƒ
     let currentLocation = 1;
 
     if (targetChParam && !isNaN(targetChParam) && paperToChapterMap.length > 0) {
-        // თუ URL-ში წერია თავი (მაგ: ?ch=2)
+        // áƒ—áƒ£ URL-áƒ¨áƒ˜ áƒ¬áƒ”áƒ áƒ˜áƒ áƒ—áƒáƒ•áƒ˜ (áƒ›áƒáƒ’: ?ch=2)
 
-        // ვპოულობთ ამ თავის ინდექსს (URL არის 1-based, მასივი 0-based)
+        // áƒ•áƒžáƒáƒ£áƒšáƒáƒ‘áƒ— áƒáƒ› áƒ—áƒáƒ•áƒ˜áƒ¡ áƒ˜áƒœáƒ“áƒ”áƒ¥áƒ¡áƒ¡ (URL áƒáƒ áƒ˜áƒ¡ 1-based, áƒ›áƒáƒ¡áƒ˜áƒ•áƒ˜ 0-based)
         const targetChIndex = targetChParam - 1;
-        // ვპოულობთ ამ თავის პირველ გვერდს
+        // áƒ•áƒžáƒáƒ£áƒšáƒáƒ‘áƒ— áƒáƒ› áƒ—áƒáƒ•áƒ˜áƒ¡ áƒžáƒ˜áƒ áƒ•áƒ”áƒš áƒ’áƒ•áƒ”áƒ áƒ“áƒ¡
         const targetPageIndex = paperToChapterMap.indexOf(targetChIndex);
 
         if (targetPageIndex !== -1) {
             const chapterStartPage = targetPageIndex + 1;
 
-            // 🧠 SMART LOGIC:
-            // თუ შენახული გვერდი არსებობს და ის ამავე თავშია,
-            // მაშინ ვიყენებთ შენახულ გვერდს (ზუსტ პოზიციას).
-            // თუ სხვა თავშია, ესე იგი ლინკით გადმოხვედი -> მივდივართ თავის დასაწყისში.
+            // ðŸ§  SMART LOGIC:
+            // áƒ—áƒ£ áƒ¨áƒ”áƒœáƒáƒ®áƒ£áƒšáƒ˜ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ áƒáƒ áƒ¡áƒ”áƒ‘áƒáƒ‘áƒ¡ áƒ“áƒ áƒ˜áƒ¡ áƒáƒ›áƒáƒ•áƒ” áƒ—áƒáƒ•áƒ¨áƒ˜áƒ,
+            // áƒ›áƒáƒ¨áƒ˜áƒœ áƒ•áƒ˜áƒ§áƒ”áƒœáƒ”áƒ‘áƒ— áƒ¨áƒ”áƒœáƒáƒ®áƒ£áƒš áƒ’áƒ•áƒ”áƒ áƒ“áƒ¡ (áƒ–áƒ£áƒ¡áƒ¢ áƒžáƒáƒ–áƒ˜áƒªáƒ˜áƒáƒ¡).
+            // áƒ—áƒ£ áƒ¡áƒ®áƒ•áƒ áƒ—áƒáƒ•áƒ¨áƒ˜áƒ, áƒ”áƒ¡áƒ” áƒ˜áƒ’áƒ˜ áƒšáƒ˜áƒœáƒ™áƒ˜áƒ— áƒ’áƒáƒ“áƒ›áƒáƒ®áƒ•áƒ”áƒ“áƒ˜ -> áƒ›áƒ˜áƒ•áƒ“áƒ˜áƒ•áƒáƒ áƒ— áƒ—áƒáƒ•áƒ˜áƒ¡ áƒ“áƒáƒ¡áƒáƒ¬áƒ§áƒ˜áƒ¡áƒ¨áƒ˜.
 
             if (savedLocation && paperToChapterMap[savedLocation - 1] === targetChIndex) {
-                currentLocation = savedLocation; // ზუსტი პოზიცია
+                currentLocation = savedLocation; // áƒ–áƒ£áƒ¡áƒ¢áƒ˜ áƒžáƒáƒ–áƒ˜áƒªáƒ˜áƒ
             } else {
-                currentLocation = chapterStartPage; // თავის დასაწყისი
+                currentLocation = chapterStartPage; // áƒ—áƒáƒ•áƒ˜áƒ¡ áƒ“áƒáƒ¡áƒáƒ¬áƒ§áƒ˜áƒ¡áƒ˜
             }
         } else {
             currentLocation = savedLocation || 1;
         }
     } else {
-        // თუ URL პარამეტრი არ არის -> ვიყენებთ Save-ს
+        // áƒ—áƒ£ URL áƒžáƒáƒ áƒáƒ›áƒ”áƒ¢áƒ áƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡ -> áƒ•áƒ˜áƒ§áƒ”áƒœáƒ”áƒ‘áƒ— Save-áƒ¡
         currentLocation = savedLocation || 1;
     }
 
-    // უსაფრთხოება: არ გავცდეთ ლიმიტებს
+    // áƒ£áƒ¡áƒáƒ¤áƒ áƒ—áƒ®áƒáƒ”áƒ‘áƒ: áƒáƒ  áƒ’áƒáƒ•áƒªáƒ“áƒ”áƒ— áƒšáƒ˜áƒ›áƒ˜áƒ¢áƒ”áƒ‘áƒ¡
     if (currentLocation > totalPapers + 1) currentLocation = 1;
     const maxLocation = totalPapers + 1;
     let mobileShowBack = false;
@@ -857,15 +857,15 @@ function initPhysics(totalPapers) {
 // TOUCH VARIABLES
     let isBusy = false;
     let touchStartX = 0;
-    let touchStartY = 0; // სქროლის დეტექციისთვის
+    let touchStartY = 0; // áƒ¡áƒ¥áƒ áƒáƒšáƒ˜áƒ¡ áƒ“áƒ”áƒ¢áƒ”áƒ¥áƒªáƒ˜áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
 // 2. SYNC VISUALS
     function syncVisuals(instant = false, targetSide = 'front') {
         papers.forEach((p, i) => {
             if (instant) p.style.transition = 'none';
             if (i < currentLocation - 1) {
                 p.classList.add('flipped');
-// მობილურზე გადაშლილი გვერდი სრულიად მოვაშოროთ DOM-იდან (display:none),
-// რომ ხელს არ უშლიდეს კლიკს
+// áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” áƒ’áƒáƒ“áƒáƒ¨áƒšáƒ˜áƒšáƒ˜ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ áƒ¡áƒ áƒ£áƒšáƒ˜áƒáƒ“ áƒ›áƒáƒ•áƒáƒ¨áƒáƒ áƒáƒ— DOM-áƒ˜áƒ“áƒáƒœ (display:none),
+// áƒ áƒáƒ› áƒ®áƒ”áƒšáƒ¡ áƒáƒ  áƒ£áƒ¨áƒšáƒ˜áƒ“áƒ”áƒ¡ áƒ™áƒšáƒ˜áƒ™áƒ¡
                 if (window.innerWidth <= 768) p.style.display = 'none';
             } else {
                 p.classList.remove('flipped');
@@ -890,7 +890,7 @@ function initPhysics(totalPapers) {
             setTimeout(() => { papers.forEach(p => p.style.transition = ''); }, 100);
         }
     }
-// ✅ SIDEBAR LISTENER
+// âœ… SIDEBAR LISTENER
     document.addEventListener('book-nav', (e) => {
         const { pageIndex, side } = e.detail;
         let targetLocation = pageIndex + 1;
@@ -902,13 +902,13 @@ function initPhysics(totalPapers) {
         syncVisuals(true, side);
     });
 // =========================================
-// ✅ TOUCH & CLICK HANDLING (THE FIX)
+// âœ… TOUCH & CLICK HANDLING (THE FIX)
 // =========================================
-// 1. DESKTOP CLICKS (მხოლოდ მაუსისთვის)
+// 1. DESKTOP CLICKS (áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ›áƒáƒ£áƒ¡áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡)
     papers.forEach((paper, index) => {
         paper.style.zIndex = totalPapers - index;
         paper.onclick = (e) => {
-// თუ მობილურია, onclick-ს ვაიგნორებთ (Touch-ს ვიყენებთ)
+// áƒ—áƒ£ áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ˜áƒ, onclick-áƒ¡ áƒ•áƒáƒ˜áƒ’áƒœáƒáƒ áƒ”áƒ‘áƒ— (Touch-áƒ¡ áƒ•áƒ˜áƒ§áƒ”áƒœáƒ”áƒ‘áƒ—)
             if (window.innerWidth <= 768) return;
             if (isBusy) return;
             if (currentLocation <= totalPapers) {
@@ -918,37 +918,37 @@ function initPhysics(totalPapers) {
         };
     });
 // 2. MOBILE TOUCH (Swipe + Tap)
-// მთლიან კონტეინერს ვუსმენთ
+// áƒ›áƒ—áƒšáƒ˜áƒáƒœ áƒ™áƒáƒœáƒ¢áƒ”áƒ˜áƒœáƒ”áƒ áƒ¡ áƒ•áƒ£áƒ¡áƒ›áƒ”áƒœáƒ—
     bookContainer.addEventListener('touchstart', (e) => {
         touchStartX = e.changedTouches[0].screenX;
         touchStartY = e.changedTouches[0].screenY;
     }, { passive: true });
     bookContainer.addEventListener('touchend', (e) => {
-// მხოლოდ მობილურზე
+// áƒ›áƒ®áƒáƒšáƒáƒ“ áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ”
         if (window.innerWidth > 768) return;
         if (isBusy) return;
         const touchEndX = e.changedTouches[0].screenX;
         const touchEndY = e.changedTouches[0].screenY;
         const diffX = touchEndX - touchStartX;
         const diffY = touchEndY - touchStartY;
-// თუ მომხმარებელი სქროლავს (ვერტიკალურად), არ გადავფურცლოთ
+// áƒ—áƒ£ áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ˜ áƒ¡áƒ¥áƒ áƒáƒšáƒáƒ•áƒ¡ (áƒ•áƒ”áƒ áƒ¢áƒ˜áƒ™áƒáƒšáƒ£áƒ áƒáƒ“), áƒáƒ  áƒ’áƒáƒ“áƒáƒ•áƒ¤áƒ£áƒ áƒªáƒšáƒáƒ—
         if (Math.abs(diffY) > Math.abs(diffX)) return;
 // SWIPE DETECTION (> 50px)
         if (Math.abs(diffX) > 50) {
             if (diffX < 0) nextMob(); // Swipe Left -> Next
             else prevMob(); // Swipe Right -> Prev
         }
-// TAP DETECTION (თუ თითი არ გაუსვია, ესე იგი დააკლიკა)
+// TAP DETECTION (áƒ—áƒ£ áƒ—áƒ˜áƒ—áƒ˜ áƒáƒ  áƒ’áƒáƒ£áƒ¡áƒ•áƒ˜áƒ, áƒ”áƒ¡áƒ” áƒ˜áƒ’áƒ˜ áƒ“áƒáƒáƒ™áƒšáƒ˜áƒ™áƒ)
         else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
             const width = window.innerWidth;
-// ეკრანის მარჯვენა მხარე -> Next, მარცხენა -> Prev
+// áƒ”áƒ™áƒ áƒáƒœáƒ˜áƒ¡ áƒ›áƒáƒ áƒ¯áƒ•áƒ”áƒœáƒ áƒ›áƒ®áƒáƒ áƒ” -> Next, áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ -> Prev
             if (touchEndX > width / 2) nextMob();
             else prevMob();
         }
     }, { passive: true });
 // 3. DESKTOP REVERSE CLICK (Container)
     bookContainer.onclick = (e) => {
-        if (window.innerWidth <= 768) return; // მობილურზე onclick არ გვინდა
+        if (window.innerWidth <= 768) return; // áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” onclick áƒáƒ  áƒ’áƒ•áƒ˜áƒœáƒ“áƒ
         if (isBusy) return;
         if (currentLocation > totalPapers) {
             const rect = bookContainer.getBoundingClientRect();
@@ -957,41 +957,41 @@ function initPhysics(totalPapers) {
             }
         }
     };
-// შენს script.js-ში იპოვე და ჩაანაცვლე ეს ფუნქციები:
+// áƒ¨áƒ”áƒœáƒ¡ script.js-áƒ¨áƒ˜ áƒ˜áƒžáƒáƒ•áƒ” áƒ“áƒ áƒ©áƒáƒáƒœáƒáƒªáƒ•áƒšáƒ” áƒ”áƒ¡ áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ”áƒ‘áƒ˜:
 
     function nextMob() {
         lockInput(200);
         if (currentLocation > totalPapers) return;
 
-        // Mobile "Back" ლოგიკა (თუ უკანა მხარეს აჩვენებდა)
+        // Mobile "Back" áƒšáƒáƒ’áƒ˜áƒ™áƒ (áƒ—áƒ£ áƒ£áƒ™áƒáƒœáƒ áƒ›áƒ®áƒáƒ áƒ”áƒ¡ áƒáƒ©áƒ•áƒ”áƒœáƒ”áƒ‘áƒ“áƒ)
         if (!mobileShowBack) {
-            // ჩვენ გავთიშეთ Back მხარე მობილურზე CSS-ით,
-            // ამიტომ აქ პირდაპირ გადავდივართ შემდეგზე
+            // áƒ©áƒ•áƒ”áƒœ áƒ’áƒáƒ•áƒ—áƒ˜áƒ¨áƒ”áƒ— Back áƒ›áƒ®áƒáƒ áƒ” áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ” CSS-áƒ˜áƒ—,
+            // áƒáƒ›áƒ˜áƒ¢áƒáƒ› áƒáƒ¥ áƒžáƒ˜áƒ áƒ“áƒáƒžáƒ˜áƒ  áƒ’áƒáƒ“áƒáƒ•áƒ“áƒ˜áƒ•áƒáƒ áƒ— áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’áƒ–áƒ”
 
-            // ძველი კოდი: papers[currentLocation - 1].style.display = 'none';  <-- ეს წავშალეთ!
+            // áƒ«áƒ•áƒ”áƒšáƒ˜ áƒ™áƒáƒ“áƒ˜: papers[currentLocation - 1].style.display = 'none';  <-- áƒ”áƒ¡ áƒ¬áƒáƒ•áƒ¨áƒáƒšáƒ”áƒ—!
 
-            papers[currentLocation - 1].classList.add('flipped'); // ეს გაუშვებს CSS ანიმაციას (მარცხნივ გაცურებას)
+            papers[currentLocation - 1].classList.add('flipped'); // áƒ”áƒ¡ áƒ’áƒáƒ£áƒ¨áƒ•áƒ”áƒ‘áƒ¡ CSS áƒáƒœáƒ˜áƒ›áƒáƒªáƒ˜áƒáƒ¡ (áƒ›áƒáƒ áƒªáƒ®áƒœáƒ˜áƒ• áƒ’áƒáƒªáƒ£áƒ áƒ”áƒ‘áƒáƒ¡)
 
             currentLocation++;
             mobileShowBack = false;
-            reZ(); // Z-index-ების გადალაგება
+            reZ(); // Z-index-áƒ”áƒ‘áƒ˜áƒ¡ áƒ’áƒáƒ“áƒáƒšáƒáƒ’áƒ”áƒ‘áƒ
             updateState();
         }
-        // შენიშვნა: რადგან CSS-ში .back გავთიშეთ, else ბლოკი ფაქტობრივად აღარ გვჭირდება,
-        // მაგრამ სტრუქტურა დავტოვოთ უსაფრთხოებისთვის.
+        // áƒ¨áƒ”áƒœáƒ˜áƒ¨áƒ•áƒœáƒ: áƒ áƒáƒ“áƒ’áƒáƒœ CSS-áƒ¨áƒ˜ .back áƒ’áƒáƒ•áƒ—áƒ˜áƒ¨áƒ”áƒ—, else áƒ‘áƒšáƒáƒ™áƒ˜ áƒ¤áƒáƒ¥áƒ¢áƒáƒ‘áƒ áƒ˜áƒ•áƒáƒ“ áƒáƒ¦áƒáƒ  áƒ’áƒ•áƒ­áƒ˜áƒ áƒ“áƒ”áƒ‘áƒ,
+        // áƒ›áƒáƒ’áƒ áƒáƒ› áƒ¡áƒ¢áƒ áƒ£áƒ¥áƒ¢áƒ£áƒ áƒ áƒ“áƒáƒ•áƒ¢áƒáƒ•áƒáƒ— áƒ£áƒ¡áƒáƒ¤áƒ áƒ—áƒ®áƒáƒ”áƒ‘áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡.
     }
 
     function prevMob() {
         lockInput(200);
-        if (currentLocation === 1) return; // დასაწყისია
+        if (currentLocation === 1) return; // áƒ“áƒáƒ¡áƒáƒ¬áƒ§áƒ˜áƒ¡áƒ˜áƒ
 
         currentLocation--;
         const p = papers[currentLocation - 1];
 
-        // ძველი კოდი: p.style.display = 'block'; <-- ეს წავშალეთ!
+        // áƒ«áƒ•áƒ”áƒšáƒ˜ áƒ™áƒáƒ“áƒ˜: p.style.display = 'block'; <-- áƒ”áƒ¡ áƒ¬áƒáƒ•áƒ¨áƒáƒšáƒ”áƒ—!
 
-        // მცირე დაყოვნება აღარ გვჭირდება, რადგან ელემენტი სულ DOM-შია
-        p.classList.remove('flipped'); // ეს დააბრუნებს გვერდს ეკრანზე (მარჯვნიდან შემოცურდება)
+        // áƒ›áƒªáƒ˜áƒ áƒ” áƒ“áƒáƒ§áƒáƒ•áƒœáƒ”áƒ‘áƒ áƒáƒ¦áƒáƒ  áƒ’áƒ•áƒ­áƒ˜áƒ áƒ“áƒ”áƒ‘áƒ, áƒ áƒáƒ“áƒ’áƒáƒœ áƒ”áƒšáƒ”áƒ›áƒ”áƒœáƒ¢áƒ˜ áƒ¡áƒ£áƒš DOM-áƒ¨áƒ˜áƒ
+        p.classList.remove('flipped'); // áƒ”áƒ¡ áƒ“áƒáƒáƒ‘áƒ áƒ£áƒœáƒ”áƒ‘áƒ¡ áƒ’áƒ•áƒ”áƒ áƒ“áƒ¡ áƒ”áƒ™áƒ áƒáƒœáƒ–áƒ” (áƒ›áƒáƒ áƒ¯áƒ•áƒœáƒ˜áƒ“áƒáƒœ áƒ¨áƒ”áƒ›áƒáƒªáƒ£áƒ áƒ“áƒ”áƒ‘áƒ)
 
         mobileShowBack = false;
         reZ();
@@ -1023,13 +1023,13 @@ function initPhysics(totalPapers) {
     function reZ() {
         papers.forEach((p, i) => {
             if (window.innerWidth <= 768) {
-                // მობილური: გვერდები დალაგებულია "დასტად".
-                // პირველი გვერდი (Cover) სულ ზემოთ (დიდი Z), ბოლო სულ ქვემოთ.
-                // როცა Flipped ხდება, ის გადის ეკრანიდან, ამიტომ Z აღარ არის კრიტიკული,
-                // მაგრამ სჯობს მაღალი დარჩეს რომ ანიმაციისას ზემოდან გადაიაროს.
+                // áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ˜: áƒ’áƒ•áƒ”áƒ áƒ“áƒ”áƒ‘áƒ˜ áƒ“áƒáƒšáƒáƒ’áƒ”áƒ‘áƒ£áƒšáƒ˜áƒ "áƒ“áƒáƒ¡áƒ¢áƒáƒ“".
+                // áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ (Cover) áƒ¡áƒ£áƒš áƒ–áƒ”áƒ›áƒáƒ— (áƒ“áƒ˜áƒ“áƒ˜ Z), áƒ‘áƒáƒšáƒ áƒ¡áƒ£áƒš áƒ¥áƒ•áƒ”áƒ›áƒáƒ—.
+                // áƒ áƒáƒªáƒ Flipped áƒ®áƒ“áƒ”áƒ‘áƒ, áƒ˜áƒ¡ áƒ’áƒáƒ“áƒ˜áƒ¡ áƒ”áƒ™áƒ áƒáƒœáƒ˜áƒ“áƒáƒœ, áƒáƒ›áƒ˜áƒ¢áƒáƒ› Z áƒáƒ¦áƒáƒ  áƒáƒ áƒ˜áƒ¡ áƒ™áƒ áƒ˜áƒ¢áƒ˜áƒ™áƒ£áƒšáƒ˜,
+                // áƒ›áƒáƒ’áƒ áƒáƒ› áƒ¡áƒ¯áƒáƒ‘áƒ¡ áƒ›áƒáƒ¦áƒáƒšáƒ˜ áƒ“áƒáƒ áƒ©áƒ”áƒ¡ áƒ áƒáƒ› áƒáƒœáƒ˜áƒ›áƒáƒªáƒ˜áƒ˜áƒ¡áƒáƒ¡ áƒ–áƒ”áƒ›áƒáƒ“áƒáƒœ áƒ’áƒáƒ“áƒáƒ˜áƒáƒ áƒáƒ¡.
                 p.style.zIndex = totalPapers - i;
             } else {
-                // დესკტოპი (შენი ძველი ლოგიკა)
+                // áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ˜ (áƒ¨áƒ”áƒœáƒ˜ áƒ«áƒ•áƒ”áƒšáƒ˜ áƒšáƒáƒ’áƒ˜áƒ™áƒ)
                 p.style.zIndex = (i < currentLocation - 1) ? i : totalPapers - i;
             }
         });
@@ -1042,29 +1042,29 @@ function initPhysics(totalPapers) {
             localStorage.setItem(storageKey, currentLocation);
         }
 
-        // ✅ NEW: URL-ის განახლება თავების მიხედვით
+        // âœ… NEW: URL-áƒ˜áƒ¡ áƒ’áƒáƒœáƒáƒ®áƒšáƒ”áƒ‘áƒ áƒ—áƒáƒ•áƒ”áƒ‘áƒ˜áƒ¡ áƒ›áƒ˜áƒ®áƒ”áƒ“áƒ•áƒ˜áƒ—
         if (paperToChapterMap.length > 0) {
-            // ვგებულობთ რომელ თავშია მიმდინარე გვერდი
-            // currentLocation - 1 რადგან მასივი 0-დან იწყება
+            // áƒ•áƒ’áƒ”áƒ‘áƒ£áƒšáƒáƒ‘áƒ— áƒ áƒáƒ›áƒ”áƒš áƒ—áƒáƒ•áƒ¨áƒ˜áƒ áƒ›áƒ˜áƒ›áƒ“áƒ˜áƒœáƒáƒ áƒ” áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜
+            // currentLocation - 1 áƒ áƒáƒ“áƒ’áƒáƒœ áƒ›áƒáƒ¡áƒ˜áƒ•áƒ˜ 0-áƒ“áƒáƒœ áƒ˜áƒ¬áƒ§áƒ”áƒ‘áƒ
             const currentChIndex = paperToChapterMap[currentLocation - 1];
 
-            // თუ თავი შეიცვალა (ან პირველი ჩატვირთვაა)
+            // áƒ—áƒ£ áƒ—áƒáƒ•áƒ˜ áƒ¨áƒ”áƒ˜áƒªáƒ•áƒáƒšáƒ (áƒáƒœ áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ áƒ©áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒáƒ)
             if (currentChIndex !== undefined && currentChIndex !== lastLoggedChapter) {
                 lastLoggedChapter = currentChIndex;
 
-                // URL-ის შექმნა: ?ch=1, ?ch=2... (ადამიანური ინდექსით, ანუ +1)
+                // URL-áƒ˜áƒ¡ áƒ¨áƒ”áƒ¥áƒ›áƒœáƒ: ?ch=1, ?ch=2... (áƒáƒ“áƒáƒ›áƒ˜áƒáƒœáƒ£áƒ áƒ˜ áƒ˜áƒœáƒ“áƒ”áƒ¥áƒ¡áƒ˜áƒ—, áƒáƒœáƒ£ +1)
                 const url = new URL(window.location);
                 url.searchParams.set('ch', currentChIndex + 1);
 
-                // URL-ის შეცვლა ისე, რომ გვერდი არ გადაიტვირთოს
-                // replaceState-ს ვიყენებთ, რომ Back ღილაკმა არ გაჭედოს მკითხველი უსასრულო ისტორიაში
+                // URL-áƒ˜áƒ¡ áƒ¨áƒ”áƒªáƒ•áƒšáƒ áƒ˜áƒ¡áƒ”, áƒ áƒáƒ› áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜ áƒáƒ  áƒ’áƒáƒ“áƒáƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒáƒ¡
+                // replaceState-áƒ¡ áƒ•áƒ˜áƒ§áƒ”áƒœáƒ”áƒ‘áƒ—, áƒ áƒáƒ› Back áƒ¦áƒ˜áƒšáƒáƒ™áƒ›áƒ áƒáƒ  áƒ’áƒáƒ­áƒ”áƒ“áƒáƒ¡ áƒ›áƒ™áƒ˜áƒ—áƒ®áƒ•áƒ”áƒšáƒ˜ áƒ£áƒ¡áƒáƒ¡áƒ áƒ£áƒšáƒ áƒ˜áƒ¡áƒ¢áƒáƒ áƒ˜áƒáƒ¨áƒ˜
                 window.history.replaceState({}, '', url);
             }
         }
     }
     function lockInput(time) { isBusy = true; setTimeout(() => { isBusy = false; }, time); }
-    function unlockInput() { isBusy = false; } // დამხმარე
-// 🚀 INITIAL LAUNCH
+    function unlockInput() { isBusy = false; } // áƒ“áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”
+// ðŸš€ INITIAL LAUNCH
     syncVisuals(true, 'front');
 }
 function highlightActiveSidebarItem(currentLocation, isMobileBack) {
@@ -1076,12 +1076,12 @@ function highlightActiveSidebarItem(currentLocation, isMobileBack) {
     const isMobile = window.innerWidth <= 768;
 
     if (isMobile) {
-        // მობილურზე: რომელი ფურცელიცაა, ის ID-ა
+        // áƒ›áƒáƒ‘áƒ˜áƒšáƒ£áƒ áƒ–áƒ”: áƒ áƒáƒ›áƒ”áƒšáƒ˜ áƒ¤áƒ£áƒ áƒªáƒ”áƒšáƒ˜áƒªáƒáƒ, áƒ˜áƒ¡ ID-áƒ
         visibleVirtualIds.push(pIndex);
     } else {
-        // დესკტოპზე: ძველი ლოგიკა (მარცხენა და მარჯვენა გვერდი)
-        if (pIndex > 0) visibleVirtualIds.push(((pIndex - 1) * 2) + 1); // მარცხენა
-        visibleVirtualIds.push(pIndex * 2); // მარჯვენა
+        // áƒ“áƒ”áƒ¡áƒ™áƒ¢áƒáƒžáƒ–áƒ”: áƒ«áƒ•áƒ”áƒšáƒ˜ áƒšáƒáƒ’áƒ˜áƒ™áƒ (áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ áƒ“áƒ áƒ›áƒáƒ áƒ¯áƒ•áƒ”áƒœáƒ áƒ’áƒ•áƒ”áƒ áƒ“áƒ˜)
+        if (pIndex > 0) visibleVirtualIds.push(((pIndex - 1) * 2) + 1); // áƒ›áƒáƒ áƒªáƒ®áƒ”áƒœáƒ
+        visibleVirtualIds.push(pIndex * 2); // áƒ›áƒáƒ áƒ¯áƒ•áƒ”áƒœáƒ
     }
 
     const activeOnScreen = items.filter(item => {
@@ -1091,10 +1091,10 @@ function highlightActiveSidebarItem(currentLocation, isMobileBack) {
 
     if (activeOnScreen.length > 0) {
         activeOnScreen.forEach(i => i.classList.add('active'));
-        // სარჩევის სქროლი
+        // áƒ¡áƒáƒ áƒ©áƒ”áƒ•áƒ˜áƒ¡ áƒ¡áƒ¥áƒ áƒáƒšáƒ˜
         if (!isMobile) activeOnScreen[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
-        // თუ ზუსტად სათაურზე არ ვართ, ვიპოვოთ ბოლო გავლილი სათაური
+        // áƒ—áƒ£ áƒ–áƒ£áƒ¡áƒ¢áƒáƒ“ áƒ¡áƒáƒ—áƒáƒ£áƒ áƒ–áƒ” áƒáƒ  áƒ•áƒáƒ áƒ—, áƒ•áƒ˜áƒžáƒáƒ•áƒáƒ— áƒ‘áƒáƒšáƒ áƒ’áƒáƒ•áƒšáƒ˜áƒšáƒ˜ áƒ¡áƒáƒ—áƒáƒ£áƒ áƒ˜
         const minVisibleId = Math.min(...visibleVirtualIds);
         let lastPassedItem = null;
         for (const item of items) {
@@ -1134,11 +1134,11 @@ function initQuill() {
                     [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                     [{ 'align': [] }],
                     [{ 'indent': '-1'}, { 'indent': '+1' }],
-                    ['image'], // ✅ სურათის ღილაკი დავამატეთ
+                    ['image'], // âœ… áƒ¡áƒ£áƒ áƒáƒ—áƒ˜áƒ¡ áƒ¦áƒ˜áƒšáƒáƒ™áƒ˜ áƒ“áƒáƒ•áƒáƒ›áƒáƒ¢áƒ”áƒ—
                     ['clean']
                 ],
                 handlers: {
-                    // ✅ ჩვენი სპეციალური ჰენდლერი ატვირთვისთვის
+                    // âœ… áƒ©áƒ•áƒ”áƒœáƒ˜ áƒ¡áƒžáƒ”áƒªáƒ˜áƒáƒšáƒ£áƒ áƒ˜ áƒ°áƒ”áƒœáƒ“áƒšáƒ”áƒ áƒ˜ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡
                     image: imageHandler
                 }
             },
@@ -1147,7 +1147,7 @@ function initQuill() {
     });
 }
 
-// ✅ NEW: სურათის ატვირთვის ფუნქცია (Supabase)
+// âœ… NEW: áƒ¡áƒ£áƒ áƒáƒ—áƒ˜áƒ¡ áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ˜áƒ¡ áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ (Supabase)
 function imageHandler() {
     const input = document.createElement('input');
     input.setAttribute('type', 'file');
@@ -1158,26 +1158,26 @@ function imageHandler() {
         const file = input.files[0];
         if (!file) return;
 
-        // შენახვის დიაპაზონი (სად იდგა კურსორი)
+        // áƒ¨áƒ”áƒœáƒáƒ®áƒ•áƒ˜áƒ¡ áƒ“áƒ˜áƒáƒžáƒáƒ–áƒáƒœáƒ˜ (áƒ¡áƒáƒ“ áƒ˜áƒ“áƒ’áƒ áƒ™áƒ£áƒ áƒ¡áƒáƒ áƒ˜)
         const range = quill.getSelection();
 
-        // ვაჩვენოთ მომხმარებელს რომ იტვირთება (Placeholder)
+        // áƒ•áƒáƒ©áƒ•áƒ”áƒœáƒáƒ— áƒ›áƒáƒ›áƒ®áƒ›áƒáƒ áƒ”áƒ‘áƒ”áƒšáƒ¡ áƒ áƒáƒ› áƒ˜áƒ¢áƒ•áƒ˜áƒ áƒ—áƒ”áƒ‘áƒ (Placeholder)
         quill.insertText(range.index, 'Uploading image...', 'bold', true);
 
         try {
-            // 1. ატვირთვა Supabase-ში (ვიყენებთ იგივე bucket-ს: covers)
-            // ან შეგიძლია შექმნა ახალი bucket 'content-images', მაგრამ covers-იც იმუშავებს
+            // 1. áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ Supabase-áƒ¨áƒ˜ (áƒ•áƒ˜áƒ§áƒ”áƒœáƒ”áƒ‘áƒ— áƒ˜áƒ’áƒ˜áƒ•áƒ” bucket-áƒ¡: covers)
+            // áƒáƒœ áƒ¨áƒ”áƒ’áƒ˜áƒ«áƒšáƒ˜áƒ áƒ¨áƒ”áƒ¥áƒ›áƒœáƒ áƒáƒ®áƒáƒšáƒ˜ bucket 'content-images', áƒ›áƒáƒ’áƒ áƒáƒ› covers-áƒ˜áƒª áƒ˜áƒ›áƒ£áƒ¨áƒáƒ•áƒ”áƒ‘áƒ¡
             const fileExt = file.name.split('.').pop();
             const fileName = `content_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
 
             const { data, error } = await sbClient
                 .storage
-                .from('covers') // აქ ინახება
+                .from('covers') // áƒáƒ¥ áƒ˜áƒœáƒáƒ®áƒ”áƒ‘áƒ
                 .upload(fileName, file);
 
             if (error) throw error;
 
-            // 2. ლინკის მიღება
+            // 2. áƒšáƒ˜áƒœáƒ™áƒ˜áƒ¡ áƒ›áƒ˜áƒ¦áƒ”áƒ‘áƒ
             const { data: publicData } = sbClient
                 .storage
                 .from('covers')
@@ -1185,23 +1185,23 @@ function imageHandler() {
 
             const url = publicData.publicUrl;
 
-            // 3. ტექსტის ("Uploading...") წაშლა და სურათის ჩასმა
-            quill.deleteText(range.index, 16); // "Uploading image..." სიგრძე
+            // 3. áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜áƒ¡ ("Uploading...") áƒ¬áƒáƒ¨áƒšáƒ áƒ“áƒ áƒ¡áƒ£áƒ áƒáƒ—áƒ˜áƒ¡ áƒ©áƒáƒ¡áƒ›áƒ
+            quill.deleteText(range.index, 16); // "Uploading image..." áƒ¡áƒ˜áƒ’áƒ áƒ«áƒ”
             quill.insertEmbed(range.index, 'image', url);
 
-            // კურსორის გადატანა სურათის შემდეგ
+            // áƒ™áƒ£áƒ áƒ¡áƒáƒ áƒ˜áƒ¡ áƒ’áƒáƒ“áƒáƒ¢áƒáƒœáƒ áƒ¡áƒ£áƒ áƒáƒ—áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’
             quill.setSelection(range.index + 1);
 
         } catch (error) {
             console.error("Image upload failed:", error);
             alert("Image upload failed!");
-            quill.deleteText(range.index, 16); // წარუმატებლობისას ტექსტი წავშალოთ
+            quill.deleteText(range.index, 16); // áƒ¬áƒáƒ áƒ£áƒ›áƒáƒ¢áƒ”áƒ‘áƒšáƒáƒ‘áƒ˜áƒ¡áƒáƒ¡ áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜ áƒ¬áƒáƒ•áƒ¨áƒáƒšáƒáƒ—
         }
     };
 }
 function setupEditorEvents() {
     const modal = document.getElementById('editor-modal');
-    // უსაფრთხოების შემოწმება: თუ მოდალი არ არის, გავჩერდეთ, რომ ერორი არ ამოაგდოს
+    // áƒ£áƒ¡áƒáƒ¤áƒ áƒ—áƒ®áƒáƒ”áƒ‘áƒ˜áƒ¡ áƒ¨áƒ”áƒ›áƒáƒ¬áƒ›áƒ”áƒ‘áƒ: áƒ—áƒ£ áƒ›áƒáƒ“áƒáƒšáƒ˜ áƒáƒ  áƒáƒ áƒ˜áƒ¡, áƒ’áƒáƒ•áƒ©áƒ”áƒ áƒ“áƒ”áƒ—, áƒ áƒáƒ› áƒ”áƒ áƒáƒ áƒ˜ áƒáƒ  áƒáƒ›áƒáƒáƒ’áƒ“áƒáƒ¡
     if (!modal) {
         console.warn("Editor modal not found inside DOM.");
         return;
@@ -1217,24 +1217,24 @@ function setupEditorEvents() {
     const mobileToggleBtn = document.getElementById('mobile-expand-toggle');
     const modalBody = document.querySelector('.modal-body');
 
-    // ✅ NEW: დამხმარე ფუნქცია სათაურის ამოსაღებად
-    // ✅ NEW: დამხმარე ფუნქცია სათაურის ამოსაღებად (Fixed for Images & Empty Tags)
+    // âœ… NEW: áƒ“áƒáƒ›áƒ®áƒ›áƒáƒ áƒ” áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ áƒ¡áƒáƒ—áƒáƒ£áƒ áƒ˜áƒ¡ áƒáƒ›áƒáƒ¡áƒáƒ¦áƒ”áƒ‘áƒáƒ“
+    // âœ… NEW: áƒ“áƒáƒ›áƒ®áƒ›áƒáƒ áƒ” áƒ¤áƒ£áƒœáƒ¥áƒªáƒ˜áƒ áƒ¡áƒáƒ—áƒáƒ£áƒ áƒ˜áƒ¡ áƒáƒ›áƒáƒ¡áƒáƒ¦áƒ”áƒ‘áƒáƒ“ (Fixed for Images & Empty Tags)
     const extractTitleFromHTML = (html) => {
         const temp = document.createElement('div');
         temp.innerHTML = html;
 
-        // 1. ვეძებთ ყველა H1-ს
+        // 1. áƒ•áƒ”áƒ«áƒ”áƒ‘áƒ— áƒ§áƒ•áƒ”áƒšáƒ H1-áƒ¡
         const h1Elements = temp.querySelectorAll('h1');
 
-        // 2. გადავუყვეთ და ვიპოვოთ პირველი H1, რომელსაც რეალურად აქვს ტექსტი
-        // (ეს აგვარებს პრობლემას, თუ ფოტოს წინ ან შემდეგ ცარიელი H1 ტეგი დარჩა)
+        // 2. áƒ’áƒáƒ“áƒáƒ•áƒ£áƒ§áƒ•áƒ”áƒ— áƒ“áƒ áƒ•áƒ˜áƒžáƒáƒ•áƒáƒ— áƒžáƒ˜áƒ áƒ•áƒ”áƒšáƒ˜ H1, áƒ áƒáƒ›áƒ”áƒšáƒ¡áƒáƒª áƒ áƒ”áƒáƒšáƒ£áƒ áƒáƒ“ áƒáƒ¥áƒ•áƒ¡ áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ˜
+        // (áƒ”áƒ¡ áƒáƒ’áƒ•áƒáƒ áƒ”áƒ‘áƒ¡ áƒžáƒ áƒáƒ‘áƒšáƒ”áƒ›áƒáƒ¡, áƒ—áƒ£ áƒ¤áƒáƒ¢áƒáƒ¡ áƒ¬áƒ˜áƒœ áƒáƒœ áƒ¨áƒ”áƒ›áƒ“áƒ”áƒ’ áƒªáƒáƒ áƒ˜áƒ”áƒšáƒ˜ H1 áƒ¢áƒ”áƒ’áƒ˜ áƒ“áƒáƒ áƒ©áƒ)
         for (const h1 of h1Elements) {
             if (h1.innerText.trim() !== "") {
                 return h1.innerText.replace(/[\n\r]+/g, ' ').trim();
             }
         }
 
-        // 3. თუ H1 ვერ ვიპოვეთ, ვცადოთ H2 (უსაფრთხოებისთვის)
+        // 3. áƒ—áƒ£ H1 áƒ•áƒ”áƒ  áƒ•áƒ˜áƒžáƒáƒ•áƒ”áƒ—, áƒ•áƒªáƒáƒ“áƒáƒ— H2 (áƒ£áƒ¡áƒáƒ¤áƒ áƒ—áƒ®áƒáƒ”áƒ‘áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡)
         const h2 = temp.querySelector('h2');
         if (h2 && h2.innerText.trim() !== "") {
             return h2.innerText.replace(/[\n\r]+/g, ' ').trim();
@@ -1443,34 +1443,34 @@ function setupEditorEvents() {
     const unpublishBtn = document.getElementById('unpublish-btn');
     if (unpublishBtn) {
         unpublishBtn.onclick = async () => {
-            // უსაფრთხოების შეკითხვა
-            if(!confirm("დავმალოთ ეს თავი მკითხველისთვის? (გადავიდეს Draft-ში)")) return;
+            // áƒ£áƒ¡áƒáƒ¤áƒ áƒ—áƒ®áƒáƒ”áƒ‘áƒ˜áƒ¡ áƒ¨áƒ”áƒ™áƒ˜áƒ—áƒ®áƒ•áƒ
+            if(!confirm("áƒ“áƒáƒ•áƒ›áƒáƒšáƒáƒ— áƒ”áƒ¡ áƒ—áƒáƒ•áƒ˜ áƒ›áƒ™áƒ˜áƒ—áƒ®áƒ•áƒ”áƒšáƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡? (áƒ’áƒáƒ“áƒáƒ•áƒ˜áƒ“áƒ”áƒ¡ Draft-áƒ¨áƒ˜)")) return;
 
             const status = document.getElementById('save-status');
             unpublishBtn.innerText = "...";
 
-            // 1. ვიღებთ მიმდინარე კონტენტს (რომ არ დაიკარგოს და დრაფტში შენახული იყოს)
+            // 1. áƒ•áƒ˜áƒ¦áƒ”áƒ‘áƒ— áƒ›áƒ˜áƒ›áƒ“áƒ˜áƒœáƒáƒ áƒ” áƒ™áƒáƒœáƒ¢áƒ”áƒœáƒ¢áƒ¡ (áƒ áƒáƒ› áƒáƒ  áƒ“áƒáƒ˜áƒ™áƒáƒ áƒ’áƒáƒ¡ áƒ“áƒ áƒ“áƒ áƒáƒ¤áƒ¢áƒ¨áƒ˜ áƒ¨áƒ”áƒœáƒáƒ®áƒ£áƒšáƒ˜ áƒ˜áƒ§áƒáƒ¡)
             const currentHTML = quill.root.innerHTML;
             const extractedTitle = extractTitleFromHTML(currentHTML);
 
-            // 2. ვასუფთავებთ CONTENT-ს (საჯაროს), მაგრამ ვტოვებთ DRAFT-ს
+            // 2. áƒ•áƒáƒ¡áƒ£áƒ¤áƒ—áƒáƒ•áƒ”áƒ‘áƒ— CONTENT-áƒ¡ (áƒ¡áƒáƒ¯áƒáƒ áƒáƒ¡), áƒ›áƒáƒ’áƒ áƒáƒ› áƒ•áƒ¢áƒáƒ•áƒ”áƒ‘áƒ— DRAFT-áƒ¡
             if (editorLanguage === 'ka') {
-                chaptersData[selectedChapterIndex].draft_content = currentHTML; // დრაფტი განახლდეს
-                chaptersData[selectedChapterIndex].content = ""; // საჯარო გასუფთავდეს
+                chaptersData[selectedChapterIndex].draft_content = currentHTML; // áƒ“áƒ áƒáƒ¤áƒ¢áƒ˜ áƒ’áƒáƒœáƒáƒ®áƒšáƒ“áƒ”áƒ¡
+                chaptersData[selectedChapterIndex].content = ""; // áƒ¡áƒáƒ¯áƒáƒ áƒ áƒ’áƒáƒ¡áƒ£áƒ¤áƒ—áƒáƒ•áƒ“áƒ”áƒ¡
                 chaptersData[selectedChapterIndex].title = extractedTitle;
             } else {
                 chaptersData[selectedChapterIndex].draft_content_en = currentHTML;
-                chaptersData[selectedChapterIndex].content_en = ""; // საჯარო გასუფთავდეს
+                chaptersData[selectedChapterIndex].content_en = ""; // áƒ¡áƒáƒ¯áƒáƒ áƒ áƒ’áƒáƒ¡áƒ£áƒ¤áƒ—áƒáƒ•áƒ“áƒ”áƒ¡
                 chaptersData[selectedChapterIndex].title_en = extractedTitle;
             }
 
-            // 3. სიის განახლება (ბურთულა გაყვითლდება)
+            // 3. áƒ¡áƒ˜áƒ˜áƒ¡ áƒ’áƒáƒœáƒáƒ®áƒšáƒ”áƒ‘áƒ (áƒ‘áƒ£áƒ áƒ—áƒ£áƒšáƒ áƒ’áƒáƒ§áƒ•áƒ˜áƒ—áƒšáƒ“áƒ”áƒ‘áƒ)
             renderChaptersList();
 
-            // 4. ბაზაში გაშვება
+            // 4. áƒ‘áƒáƒ–áƒáƒ¨áƒ˜ áƒ’áƒáƒ¨áƒ•áƒ”áƒ‘áƒ
             await pushToDB(status);
 
-            // 5. წიგნის გადახატვა (რომ ადმინმა ნახოს შედეგი - თავი გაქრება view-დან თუ admin=false)
+            // 5. áƒ¬áƒ˜áƒ’áƒœáƒ˜áƒ¡ áƒ’áƒáƒ“áƒáƒ®áƒáƒ¢áƒ•áƒ (áƒ áƒáƒ› áƒáƒ“áƒ›áƒ˜áƒœáƒ›áƒ áƒœáƒáƒ®áƒáƒ¡ áƒ¨áƒ”áƒ“áƒ”áƒ’áƒ˜ - áƒ—áƒáƒ•áƒ˜ áƒ’áƒáƒ¥áƒ áƒ”áƒ‘áƒ view-áƒ“áƒáƒœ áƒ—áƒ£ admin=false)
             renderBook();
 
             unpublishBtn.innerText = "Unpublish";
@@ -1505,18 +1505,18 @@ function setupEditorEvents() {
     const addPageBtn = document.getElementById('add-page-btn');
     if (addPageBtn) {
         addPageBtn.onclick = () => {
-            // 1. ✅ სანამ ახალს დავამატებთ, მიმდინარე შევინახოთ DRAFT-ში
+            // 1. âœ… áƒ¡áƒáƒœáƒáƒ› áƒáƒ®áƒáƒšáƒ¡ áƒ“áƒáƒ•áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ—, áƒ›áƒ˜áƒ›áƒ“áƒ˜áƒœáƒáƒ áƒ” áƒ¨áƒ”áƒ•áƒ˜áƒœáƒáƒ®áƒáƒ— DRAFT-áƒ¨áƒ˜
             if (chaptersData[selectedChapterIndex]) {
                 const currentVal = quill.root.innerHTML;
                 if (editorLanguage === 'ka') chaptersData[selectedChapterIndex].draft_content = currentVal;
                 else chaptersData[selectedChapterIndex].draft_content_en = currentVal;
             }
 
-            // 2. ვამატებთ ახალ თავს
+            // 2. áƒ•áƒáƒ›áƒáƒ¢áƒ”áƒ‘áƒ— áƒáƒ®áƒáƒš áƒ—áƒáƒ•áƒ¡
             chaptersData.push({
                 id: Date.now(),
                 title: "New Chapter (Draft)",
-                content: "", // გამოქვეყნებული ცარიელია!
+                content: "", // áƒ’áƒáƒ›áƒáƒ¥áƒ•áƒ”áƒ§áƒœáƒ”áƒ‘áƒ£áƒšáƒ˜ áƒªáƒáƒ áƒ˜áƒ”áƒšáƒ˜áƒ!
                 content_en: "",
                 draft_content: "<h1>New Chapter</h1><p>Write here...</p>",
                 draft_content_en: "<h1>New Chapter</h1><p>Write here...</p>",
@@ -1548,14 +1548,14 @@ function renderChaptersList() {
     chaptersData.forEach((ch, i) => {
         const li = document.createElement('li');
 
-        // სათაური
+        // áƒ¡áƒáƒ—áƒáƒ£áƒ áƒ˜
         const displayTitle = getChapterTitle(ch, editorLanguage);
 
-        // სტატუსის დადგენა
-        let statusColor = '#28a745'; // მწვანე (Published)
+        // áƒ¡áƒ¢áƒáƒ¢áƒ£áƒ¡áƒ˜áƒ¡ áƒ“áƒáƒ“áƒ’áƒ”áƒœáƒ
+        let statusColor = '#28a745'; // áƒ›áƒ¬áƒ•áƒáƒœáƒ” (Published)
         let tooltip = "Published";
 
-        // ვიღებთ ტექსტებს ენის მიხედვით
+        // áƒ•áƒ˜áƒ¦áƒ”áƒ‘áƒ— áƒ¢áƒ”áƒ¥áƒ¡áƒ¢áƒ”áƒ‘áƒ¡ áƒ”áƒœáƒ˜áƒ¡ áƒ›áƒ˜áƒ®áƒ”áƒ“áƒ•áƒ˜áƒ—
         let pub, drf;
         if (editorLanguage === 'en') {
             pub = ch.content_en || "";
@@ -1565,12 +1565,12 @@ function renderChaptersList() {
             drf = ch.draft_content || "";
         }
 
-        // ლოგიკა: ყვითელი თუ გამოქვეყნებული ცარიელია ან განსხვავდება დრაფტისგან
+        // áƒšáƒáƒ’áƒ˜áƒ™áƒ: áƒ§áƒ•áƒ˜áƒ—áƒ”áƒšáƒ˜ áƒ—áƒ£ áƒ’áƒáƒ›áƒáƒ¥áƒ•áƒ”áƒ§áƒœáƒ”áƒ‘áƒ£áƒšáƒ˜ áƒªáƒáƒ áƒ˜áƒ”áƒšáƒ˜áƒ áƒáƒœ áƒ’áƒáƒœáƒ¡áƒ®áƒ•áƒáƒ•áƒ“áƒ”áƒ‘áƒ áƒ“áƒ áƒáƒ¤áƒ¢áƒ˜áƒ¡áƒ’áƒáƒœ
         if (pub.trim() === "") {
-            statusColor = '#ffc107'; // ყვითელი
+            statusColor = '#ffc107'; // áƒ§áƒ•áƒ˜áƒ—áƒ”áƒšáƒ˜
             tooltip = "Draft (Not Published)";
         } else if (pub !== drf) {
-            statusColor = '#ffc107'; // ყვითელი
+            statusColor = '#ffc107'; // áƒ§áƒ•áƒ˜áƒ—áƒ”áƒšáƒ˜
             tooltip = "Unpublished Changes";
         }
 
@@ -1594,16 +1594,16 @@ function renderChaptersList() {
         titleSpan.appendChild(dot);
         titleSpan.appendChild(textNode);
 
-        // ✅ CLICK EVENT - აქ იყო შეცდომა!
+        // âœ… CLICK EVENT - áƒáƒ¥ áƒ˜áƒ§áƒ áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ!
         titleSpan.onclick = () => {
             isEditingSettings = false;
             document.getElementById('editor-container').style.display = 'block';
             if(document.getElementById('settings-form')) document.getElementById('settings-form').style.display = 'none';
 
-            // ენის/თავის შეცვლისას კონტენტის დამახსოვრება DRAFT-ში!
+            // áƒ”áƒœáƒ˜áƒ¡/áƒ—áƒáƒ•áƒ˜áƒ¡ áƒ¨áƒ”áƒªáƒ•áƒšáƒ˜áƒ¡áƒáƒ¡ áƒ™áƒáƒœáƒ¢áƒ”áƒœáƒ¢áƒ˜áƒ¡ áƒ“áƒáƒ›áƒáƒ®áƒ¡áƒáƒ•áƒ áƒ”áƒ‘áƒ DRAFT-áƒ¨áƒ˜!
             if (i !== selectedChapterIndex) {
                 const currentVal = quill.root.innerHTML;
-                // ადრე აქ ეწერა .content = ... რაც შეცდომა იყო
+                // áƒáƒ“áƒ áƒ” áƒáƒ¥ áƒ”áƒ¬áƒ”áƒ áƒ .content = ... áƒ áƒáƒª áƒ¨áƒ”áƒªáƒ“áƒáƒ›áƒ áƒ˜áƒ§áƒ
                 if (editorLanguage === 'ka') chaptersData[selectedChapterIndex].draft_content = currentVal;
                 else chaptersData[selectedChapterIndex].draft_content_en = currentVal;
             }
@@ -1639,19 +1639,19 @@ function loadChapter(i) {
     if (!chaptersData[i]) return;
     selectedChapterIndex = i;
 
-    // ✅ ჩატვირთვა: ედიტორისთვის მესამე არგუმენტი არის true (Draft)
+    // âœ… áƒ©áƒáƒ¢áƒ•áƒ˜áƒ áƒ—áƒ•áƒ: áƒ”áƒ“áƒ˜áƒ¢áƒáƒ áƒ˜áƒ¡áƒ—áƒ•áƒ˜áƒ¡ áƒ›áƒ”áƒ¡áƒáƒ›áƒ” áƒáƒ áƒ’áƒ£áƒ›áƒ”áƒœáƒ¢áƒ˜ áƒáƒ áƒ˜áƒ¡ true (Draft)
     const content = getChapterContent(chaptersData[i], editorLanguage, true);
 
     if(quill) {
-        // Quill-ში ჩასმისას ცოტა სიფრთხილეა საჭირო, null რომ არ ჩაჯდეს
+        // Quill-áƒ¨áƒ˜ áƒ©áƒáƒ¡áƒ›áƒ˜áƒ¡áƒáƒ¡ áƒªáƒáƒ¢áƒ áƒ¡áƒ˜áƒ¤áƒ áƒ—áƒ®áƒ˜áƒšáƒ”áƒ áƒ¡áƒáƒ­áƒ˜áƒ áƒ, null áƒ áƒáƒ› áƒáƒ  áƒ©áƒáƒ¯áƒ“áƒ”áƒ¡
         quill.root.innerHTML = content || "";
     }
 
-    // მონიშვნა სიაში
+    // áƒ›áƒáƒœáƒ˜áƒ¨áƒ•áƒœáƒ áƒ¡áƒ˜áƒáƒ¨áƒ˜
     const lis = document.getElementById('editable-pages-list').querySelectorAll('li');
     lis.forEach(l => l.classList.remove('selected'));
     if(lis[i]) lis[i].classList.add('selected');
 
-    // სტატუსის გასუფთავება
+    // áƒ¡áƒ¢áƒáƒ¢áƒ£áƒ¡áƒ˜áƒ¡ áƒ’áƒáƒ¡áƒ£áƒ¤áƒ—áƒáƒ•áƒ”áƒ‘áƒ
     document.getElementById('save-status').innerText = "";
 }
