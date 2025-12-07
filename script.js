@@ -568,137 +568,70 @@ function buildDynamicSidebar(totalPapers) {
     sidebarList.innerHTML = '';
     const isMobile = window.innerWidth <= 768;
 
-    // 1. მონაცემების შეგროვება (Headers)
-    let headers = [];
+    // Cover
+    const coverLi = document.createElement('li');
+    coverLi.innerText = (currentLanguage === 'en') ? "Cover" : "გარეკანი";
+    coverLi.className = "toc-h1";
+    coverLi.setAttribute('data-virtual-id', -1);
 
-    // Cover დავამატოთ როგორც პირველი ელემენტი
-    headers.push({
-        text: (currentLanguage === 'en') ? "Cover" : "გარეკანი",
-        tagName: 'H1',
-        virtualId: -1,
-        pageIndex: 0,
-        side: 'front',
-        children: []
-    });
+    coverLi.onclick = () => {
+        const event = new CustomEvent('book-nav', {
+            detail: {
+                pageIndex: 0,
+                total: totalPapers,
+                side: 'front'
+            }
+        });
+        document.dispatchEvent(event);
+        closeSidebarMobile();
+    };
+    sidebarList.appendChild(coverLi);
 
     const papers = document.querySelectorAll('.paper');
 
     papers.forEach((paper, paperIndex) => {
-        // ვეძებთ სათაურებს
+        // ვეძებთ სათაურებს როგორც Front, ისე Back მხარეს (დესკტოპისთვის)
         const headings = paper.querySelectorAll('h1, h2, h3');
+
         headings.forEach(heading => {
             if (heading.classList.contains('split-continuation')) return;
 
-            const fullText = heading.getAttribute('data-full-text') || heading.innerText;
-            const tagName = heading.tagName;
+            const li = document.createElement('li');
+            const fullText = heading.getAttribute('data-full-text');
+            li.innerText = fullText ? fullText : heading.innerText;
+            li.classList.add(`toc-${heading.tagName.toLowerCase()}`);
+
+            // მობილურზე "Back" არ არსებობს, ყველაფერი Front-ია
+            const isBack = isMobile ? false : (heading.closest('.back') !== null);
+            const side = isBack ? 'back' : 'front';
 
             // ID სკროლისთვის
-            const isBack = isMobile ? false : (heading.closest('.back') !== null);
-            let virtualId = isMobile ? paperIndex : (paperIndex * 2) + (isBack ? 1 : 0);
-
-            // ობიექტის შექმნა
-            const item = {
-                text: fullText,
-                tagName: tagName,
-                virtualId: virtualId,
-                pageIndex: paperIndex,
-                side: isBack ? 'back' : 'front',
-                children: [] // ადგილი შვილებისთვის
-            };
-
-            // 2. დაჯგუფების ლოგიკა (H1 -> H2/H3)
-            if (tagName === 'H1') {
-                headers.push(item); // ახალი მშობელი
+            let virtualId;
+            if (isMobile) {
+                virtualId = paperIndex; // მობილურზე მარტივია: 1 ფურცელი = 1 ID
             } else {
-                // თუ H2 ან H3-ია, ვეძებთ ბოლო H1-ს და იმაში ვტენით
-                // თუ მშობელი არ არსებობს (წიგნი H2-ით იწყება), ვქმნით დროებით მშობელს ან ვუშვებთ root-ში
-                let lastParent = headers[headers.length - 1];
-                if (lastParent && lastParent.tagName === 'H1') {
-                    lastParent.children.push(item);
-                } else {
-                    headers.push(item); // ობოლი H2 (გავუშვათ როგორც მშობელი)
-                }
+                virtualId = (paperIndex * 2) + (isBack ? 1 : 0);
             }
+
+            li.setAttribute('data-virtual-id', virtualId);
+
+            // ეს უბრალოდ ვიზუალური ნომრისთვის (თუ დაგჭირდა)
+            li.setAttribute('data-target-page', paperIndex + 1);
+
+            li.onclick = () => {
+                const event = new CustomEvent('book-nav', {
+                    detail: {
+                        pageIndex: paperIndex,
+                        total: totalPapers,
+                        side: side
+                    }
+                });
+                document.dispatchEvent(event);
+                closeSidebarMobile();
+            };
+            sidebarList.appendChild(li);
         });
     });
-
-    // 3. HTML-ის გენერაცია (Nested List)
-    headers.forEach(parent => {
-        const li = document.createElement('li');
-        li.className = 'chapter-item';
-        li.setAttribute('data-virtual-id', parent.virtualId);
-
-        // Header Container
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'chapter-header';
-
-        // Title Click (Navigation)
-        const titleSpan = document.createElement('span');
-        titleSpan.innerText = parent.text;
-        titleSpan.onclick = (e) => {
-            e.stopPropagation(); // რომ Accordion არ ჩაიკეცოს
-            navigateToPage(parent.pageIndex, totalPapers, parent.side);
-            // მობილურზე დაჭერისას საიდბარი დაიხუროს
-            closeSidebarMobile();
-        };
-
-        headerDiv.appendChild(titleSpan);
-
-        // Accordion Toggle Logic
-        if (parent.children.length > 0) {
-            const icon = document.createElement('span');
-            icon.className = 'toggle-icon material-icons-outlined';
-            icon.innerText = 'expand_more';
-
-            // მთლიან ჰედერზე კლიკი (თუ ისარზე არა, ტექსტის გარშემო) ხსნის მენიუს?
-            // ამ შემთხვევაში გავაკეთოთ, რომ ისარზე კლიკი ხსნის
-            icon.onclick = (e) => {
-                e.stopPropagation();
-                li.classList.toggle('expanded');
-            };
-
-            headerDiv.appendChild(icon);
-        }
-
-        li.appendChild(headerDiv);
-
-        // Sub-menu Generation
-        if (parent.children.length > 0) {
-            const subUl = document.createElement('ul');
-            subUl.className = 'sub-chapter-list';
-
-            parent.children.forEach(child => {
-                const subLi = document.createElement('li');
-                subLi.className = 'sub-chapter-item';
-                subLi.innerText = child.text;
-                subLi.setAttribute('data-virtual-id', child.virtualId);
-
-                subLi.onclick = (e) => {
-                    e.stopPropagation();
-                    navigateToPage(child.pageIndex, totalPapers, child.side);
-                    closeSidebarMobile();
-                };
-
-                subUl.appendChild(subLi);
-            });
-
-            li.appendChild(subUl);
-        }
-
-        sidebarList.appendChild(li);
-    });
-}
-
-// დამხმარე ფუნქცია ნავიგაციისთვის (რომ კოდი არ გავიმეოროთ)
-function navigateToPage(idx, total, side) {
-    const event = new CustomEvent('book-nav', {
-        detail: {
-            pageIndex: idx,
-            total: total,
-            side: side
-        }
-    });
-    document.dispatchEvent(event);
 }
 // UTILS (Hyphenation and Pagination - UNCHANGED)
 function applyCustomGeorgianHyphenation(html) { const tempDiv = document.createElement('div'); tempDiv.innerHTML = html; function traverse(node) { if (node.nodeType === 3) { const words = node.nodeValue.split(' '); const processedWords = words.map(word => hyphenateWord(word)); node.nodeValue = processedWords.join(' '); } else { for (let child of node.childNodes) traverse(child); } } traverse(tempDiv); return tempDiv.innerHTML; }
