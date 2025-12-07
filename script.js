@@ -1906,4 +1906,4 @@ function waitForImages(element) {
             img.onerror = () => resolve(); // ერორზეც ვაგრძელებთ, რომ არ გაიჭედოს
         });
     }));
-}
+} 
