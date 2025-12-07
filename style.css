@@ -1,0 +1,1304 @@
+/* ============================================================
+       SCOPE ISOLATION START: #digital-library-root
+       ყველა სტილი მოქმედებს მხოლოდ ამ ID-ის შიგნით
+       ============================================================ */
+
+    /* იზოლირებული ცვლადები */
+#digital-library-root {
+    --book-width: 600px;
+    --book-height: 80vh;
+    --sidebar-width: 260px;
+
+    /* Default Dark Mode Colors */
+    --bg-color: #111111;
+    --sidebar-bg: #111111;
+    --sidebar-border: #222;
+    --paper-color: #1c1c1c;
+    --paper-curve: #0a0a0a;
+    --text-color: #a0a0a0;
+    --heading-color: #ffffff;
+    --accent-color: #ffffff;
+
+    /* Fonts & Animation */
+    --turn-duration: 0.8s;
+    --ease-paper: cubic-bezier(0.23, 1, 0.32, 1);
+    --p-font-size: 0.95rem;
+
+    /* მთავარი კონტეინერის პარამეტრები - სრული ეკრანი */
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    /* ✅ FIX: ჯერ ჩვეულებრივი vh (ძველი ბრაუზერებისთვის) */
+    height: 100vh !important;
+    /* ✅ FIX: შემდეგ dvh (Dynamic VH), რაც გამორიცხავს ბრაუზერის პანელებს */
+    height: 100dvh !important;
+
+    z-index: 99999 !important; /* რომ გადაფაროს ვორდპრესის ჰედერი */
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+    font-family: 'Merriweather', serif !important;
+    overflow: hidden !important;
+    display: flex !important;
+    box-sizing: border-box !important;
+    -webkit-user-select: none; /* Chrome/Safari */
+    -moz-user-select: none;    /* Firefox */
+    -ms-user-select: none;     /* IE/Edge */
+    user-select: none;         /* Standard */
+}
+
+/* RESET მხოლოდ ჩვენი კონტეინერისთვის */
+#digital-library-root *,
+#digital-library-root *::before,
+#digital-library-root *::after {
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* ============================
+   THEME LOGIC (Bridging JS on Body to CSS on Root)
+   ============================ */
+
+/* როცა body-ს აქვს light-mode (JS-ით), ჩვენს რუთს ეცვლება ფერები */
+body.light-mode #digital-library-root {
+    --bg-color: #f4f4f4;
+    --sidebar-bg: #e0e0e0;
+    --sidebar-border: #ccc;
+    --paper-color: #ffffff;
+    --paper-curve: #e6e6e6;
+    --text-color: #333333;
+    --heading-color: #000000;
+    --accent-color: #000000;
+}
+
+/* Light Mode Specific Overrides targeted inside Root */
+body.light-mode #digital-library-root .chapter-list li.toc-h1 {
+    color: #000000 !important;
+    font-weight: 900 !important;
+}
+body.light-mode #digital-library-root .chapter-list li.toc-h1:hover {
+    color: #333333 !important;
+}
+body.light-mode #digital-library-root .chapter-list li.toc-h1.active {
+    color: #000000 !important;
+    border-left-color: #000000 !important;
+}
+body.light-mode #digital-library-root .chapter-list li { color: #666 !important; }
+body.light-mode #digital-library-root .chapter-list li:hover {
+    color: #000000 !important;
+    border-color: #000000 !important;
+    border-left-color: #000000 !important;
+}
+body.light-mode #digital-library-root .chapter-list li.active {
+    color: #000 !important;
+    border-left: 2px solid #000 !important;
+    background: rgba(0,0,0,0.05) !important;
+}
+body.light-mode #digital-library-root .open-sidebar-btn,
+body.light-mode #digital-library-root #go-to-library-icon .material-icons-outlined,
+body.light-mode #digital-library-root .site-title h1 { color: #333 !important; text-shadow: none !important; }
+body.light-mode #digital-library-root .page-number { color: #999 !important; }
+
+/* Light Mode Sidebar Controls */
+body.light-mode #digital-library-root .sidebar-controls {
+    background: #e0e0e0 !important;
+    border-top: 1px solid #ccc !important;
+}
+body.light-mode #digital-library-root .font-display-label {
+    color: #333 !important;
+}
+body.light-mode #digital-library-root .font-control-btn {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1px solid #999 !important;
+}
+body.light-mode #digital-library-root .font-control-btn:hover {
+    background: #eee !important;
+}
+
+/* ============================
+   SIDEBAR & LAYOUT
+   ============================ */
+#digital-library-root .sidebar {
+    width: var(--sidebar-width) !important;
+    background: var(--sidebar-bg) !important;
+    height: 100% !important;
+    border-right: 1px solid var(--sidebar-border) !important;
+    padding: 3rem 2rem !important;
+    position: absolute !important; /* Fixed-ის ნაცვლად absolute, რადგან root არის fixed */
+    left: 0 !important;
+    top: 0 !important;
+    z-index: 100000 !important;
+    transition: all 0.5s var(--ease-paper) !important;
+    font-family: 'Lato', sans-serif !important;
+}
+
+#digital-library-root .sidebar.collapsed {
+    transform: translateX(-100%) !important;
+    left: -300px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* Main Content Logic */
+#digital-library-root #main-content {
+    flex-grow: 1 !important;
+    background-color: var(--bg-color) !important;
+    margin-left: var(--sidebar-width) !important;
+    height: 100vh !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    transition: margin-left 0.5s var(--ease-paper) !important;
+    perspective: 3500px !important;
+    width: auto !important;
+    opacity: 0 !important; /* Loaded-მდე დამალულია */
+}
+
+/* როცა JS body-ზე დებს 'sidebar-closed'-ს, ჩვენს რუთში მარჯინი ნულდება */
+body.sidebar-closed #digital-library-root #main-content {
+    margin-left: 0 !important;
+}
+
+/* Loaded Logic */
+body.loaded #digital-library-root #main-content,
+body.loaded #digital-library-root .nav-toolbar,
+body.loaded #digital-library-root #edit-mode-btn {
+    opacity: 1 !important;
+}
+
+/* Sidebar Elements */
+#digital-library-root .sidebar-header h2 { color: var(--heading-color) !important; font-weight: 300 !important; font-size: 0.85rem !important; text-transform: uppercase !important; letter-spacing: 3px !important; margin-bottom: 2rem !important; }
+#digital-library-root .toggle-btn { color: var(--text-color) !important; background: none !important; border: none !important; font-size: 1.2rem !important; cursor: pointer !important; opacity: 0.5 !important; }
+#digital-library-root .chapter-list { list-style: none !important; margin-top: 1rem !important; padding-bottom: 80px !important; }
+#digital-library-root .chapter-list li { padding: 10px 0 !important; cursor: pointer !important; transition: all 0.3s !important; font-size: 0.9rem !important; color: #555 !important; border-bottom: 1px solid transparent !important; }
+
+#digital-library-root .chapter-list li:hover,
+#digital-library-root .chapter-list li.active {
+    color: #ffffff !important;
+    font-weight: bold !important;
+    border-left: 2px solid #ffffff !important;
+    padding-left: 15px !important;
+    background: linear-gradient(90deg, rgba(255,255,255,0.05), transparent) !important;
+}
+
+/* Dynamics TOC */
+#digital-library-root .chapter-list li.toc-h1 { font-weight: bold !important; margin-top: 10px !important; color: #fff !important; font-size: 0.95rem !important; }
+#digital-library-root .chapter-list li.toc-h2 { padding-left: 20px !important; font-size: 0.9rem !important; }
+#digital-library-root .chapter-list li.toc-h3 { padding-left: 35px !important; font-size: 0.85rem !important; }
+#digital-library-root .chapter-list li.active.toc-h2 { padding-left: 25px !important; }
+#digital-library-root .chapter-list li.active.toc-h3 { padding-left: 40px !important; }
+
+/* Controls */
+/* 2. Sidebar Controls - უსაფრთხო ზონა */
+#digital-library-root .sidebar-controls {
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+
+    /* ✅ FIX: პადინგი დინამიურად: მინიმუმ 15px, ან თუ ტელეფონს აქვს ქვედა ხაზი (home bar), მაშინ იმის ზომა */
+    padding: 15px 20px !important; /* დეფოლტი */
+    padding-bottom: calc(15px + env(safe-area-inset-bottom)) !important; /* უსაფრთხო ზონა */
+
+    background: #0e0e0e !important;
+    border-top: 1px solid #222 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    z-index: 1000 !important; /* რომ ნამდვილად ყველაფრის თავზე იყოს */
+}
+#digital-library-root .font-control-btn {
+    background: #222 !important; color: #fff !important; border: 1px solid #333 !important;
+    width: 35px !important; height: 35px !important; border-radius: 4px !important;
+    font-size: 1.2rem !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important;
+}
+#digital-library-root .font-display-label { color: #888 !important; font-family: 'Lato', sans-serif !important; font-size: 0.9rem !important; font-weight: bold !important; text-transform: uppercase !important; }
+
+/* ============================
+   ADMIN & UI ELEMENTS
+   ============================ */
+body:not(.is-admin) #digital-library-root .admin-only { display: none !important; }
+
+#digital-library-root #admin-login-btn { font-size: 1.2rem !important; padding: 5px 15px !important; cursor: pointer !important; border: 1px solid #444 !important; border-radius: 4px !important; transition: all 0.3s !important; }
+body.is-admin #digital-library-root #admin-login-btn { background: #28a745 !important; border-color: #28a745 !important; }
+
+#digital-library-root .open-sidebar-btn {
+    color: var(--text-color) !important; position: absolute !important; top: 30px !important;
+    font-size: 1.2rem !important; background: none !important; border: none !important;
+    cursor: pointer !important; z-index: 1000 !important; opacity: 0.5 !important;
+    transition: opacity 0.2s, left 0.5s !important;
+}
+#digital-library-root .open-sidebar-btn:hover { opacity: 1 !important; }
+#digital-library-root #go-to-library-icon { left: 80px !important; font-size: 1.5rem !important; }
+
+/* ============================
+   BOOK RENDERING
+   ============================ */
+#digital-library-root .site-title {
+    position: absolute !important; top: 40px !important; left: 0 !important; width: 100% !important;
+    text-align: center !important; z-index: 2000 !important; pointer-events: none !important;
+    opacity: 1 !important; visibility: visible !important;
+}
+#digital-library-root .site-title h1 {
+    font-family: 'Noto Sans Georgian', sans-serif !important; font-size: 1.2rem !important;
+    font-weight: 300 !important; color: #fff !important; text-transform: uppercase !important;
+    letter-spacing: 6px !important; margin: 0 !important; opacity: 0.8 !important; text-shadow: 0 2px 10px rgba(0,0,0,0.5) !important;
+}
+#digital-library-root .site-title p { font-family: 'Noto Sans Georgian', sans-serif !important; font-size: 0.7rem !important; color: #666 !important; letter-spacing: 3px !important; margin-top: 8px !important; opacity: 0.6 !important; text-align: center !important; }
+
+#digital-library-root .book-scene { width: var(--book-width) !important; height: var(--book-height) !important; margin-top: 60px !important; position: relative !important; transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1) !important; }
+#digital-library-root .book { width: 100% !important; height: 100% !important; position: relative !important; transform-style: preserve-3d !important; transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1) !important; }
+
+@media (min-width: 768px) {
+    #digital-library-root .book { transform: translateX(50%) !important; }
+    #digital-library-root .book.closed { transform: translateX(-1%) !important; }
+}
+/* ✅ FIX: Edit ღილაკი დაიმალოს, თუ ადმინი არ არის */
+body:not(.is-admin) #digital-library-root #edit-mode-btn {
+    display: none !important;
+}
+
+/* Paper & Content */
+#digital-library-root .paper { position: absolute !important; width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; transform-origin: left center !important; transform-style: preserve-3d !important; transition: transform var(--turn-duration) var(--ease-paper) !important; cursor: pointer !important; border-radius: 2px !important; }
+#digital-library-root .paper.flipped { transform: rotateY(-180deg) !important; }
+#digital-library-root .front, #digital-library-root .back { position: absolute !important; width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; backface-visibility: hidden !important; background-color: var(--paper-color) !important; overflow: hidden !important; border: 1px solid rgba(0,0,0,0.1) !important; }
+#digital-library-root .front { z-index: 2 !important; background: linear-gradient(to right, var(--paper-curve) 0%, var(--paper-color) 8%, var(--paper-color) 100%) !important; }
+#digital-library-root .back { z-index: 1 !important; transform: rotateY(180deg) !important; background: linear-gradient(to left, var(--paper-curve) 0%, var(--paper-color) 8%, var(--paper-color) 100%) !important; }
+
+#digital-library-root .page-content { padding: 3rem 3rem 1rem 3rem !important; height: 100% !important; width: 100% !important; display: block !important; overflow: hidden !important; box-sizing: border-box !important; font-family: 'Noto Sans Georgian', sans-serif !important; font-size: 0.95rem !important; line-height: 1.6 !important; font-weight: 300 !important; text-align: justify !important; hyphens: auto !important; }
+
+#digital-library-root h1 { font-size: 1.8rem !important; font-weight: 500 !important; color: var(--heading-color) !important; letter-spacing: -1px !important; line-height: 1.2 !important; margin-bottom: 1.5rem !important; }
+#digital-library-root h2 { font-size: 1.3rem !important; font-weight: 400 !important; margin-bottom: 1.5rem !important; color: var(--heading-color) !important; opacity: 0.9 !important; }
+#digital-library-root h3 { font-size: 0.75rem !important; text-transform: uppercase !important; letter-spacing: 2px !important; margin-bottom: 1rem !important; opacity: 0.6 !important; }
+#digital-library-root p { font-size: var(--p-font-size) !important; line-height: 1.6 !important; color: var(--text-color) !important; margin-bottom: 1rem !important; font-weight: 300 !important; text-align: justify !important; hyphens: auto !important; }
+#digital-library-root blockquote { border-left: 1px solid #444 !important; padding-left: 20px !important; font-style: italic !important; color: #888 !important; margin: 1.5rem 0 !important; font-size: 0.95rem !important; }
+#digital-library-root em { font-size: var(--p-font-size) !important; line-height: 1.6 !important; color: var(--text-color) !important; margin-bottom: 1rem !important; font-weight: 300 !important; text-align: justify !important; hyphens: auto !important; }
+#digital-library-root .page-number { position: absolute !important; bottom: 1.5rem !important; left: 0 !important; width: 100% !important; text-align: center !important; font-size: 0.85rem !important; color: #666 !important; font-family: 'Lato', sans-serif !important; pointer-events: none !important; }
+#digital-library-root .cover-img { position: absolute !important; top: 0 !important; right: 0 !important; width: 100% !important; height: 100% !important; object-fit: contain !important; border-radius: 2px !important; }
+#digital-library-root .hardcover-front, #digital-library-root .hardcover-back { background-color: var(--bg-color) !important; border: none !important; box-shadow: inset 0 0 0 1px #222 !important; }
+#digital-library-root .cover-design { border: none !important; margin: 0 !important; justify-content: center !important; }
+
+/* Measure Container */
+#digital-library-root #measure-container { position: absolute !important; top: 0 !important; left: 0 !important; z-index: -1000 !important; opacity: 0 !important; width: var(--book-width) !important; height: var(--book-height) !important; padding: 3rem 3rem 4rem 3rem !important; overflow: hidden !important; box-sizing: border-box !important; font-family: 'Noto Sans Georgian', sans-serif !important; }
+
+/* ============================
+   LOADER
+   ============================ */
+#digital-library-root #book-loader {
+    position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important;
+    background-color: var(--bg-color) !important; z-index: 999999999 !important;
+    display: flex !important; justify-content: center !important; align-items: center !important;
+    transition: opacity 0.4s ease, visibility 0.4s ease !important;
+}
+#digital-library-root #book-loader.hidden { opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+#digital-library-root .book-animation { position: relative !important; width: 60px !important; height: 40px !important; perspective: 1000px !important; }
+#digital-library-root .book-spine { position: absolute !important; top: 0 !important; left: 0 !important; width: 30px !important; height: 100% !important; border: 2px solid var(--text-color) !important; border-right: none !important; border-radius: 2px 0 0 2px !important; opacity: 0.3 !important; }
+#digital-library-root .book-page { position: absolute !important; top: 0 !important; left: 28px !important; width: 28px !important; height: 100% !important; border: 2px solid var(--text-color) !important; border-left: 1px solid transparent !important; border-radius: 0 2px 2px 0 !important; transform-origin: left center !important; background: transparent !important; }
+#digital-library-root .page-1 { animation: flip-page 1.8s infinite ease-in-out !important; animation-delay: 0s !important; }
+#digital-library-root .page-2 { animation: flip-page 1.8s infinite ease-in-out !important; animation-delay: 0.3s !important; }
+#digital-library-root .page-3 { animation: flip-page 1.8s infinite ease-in-out !important; animation-delay: 0.6s !important; }
+@keyframes flip-page { 0% { transform: rotateY(0deg); border-color: var(--text-color); opacity: 1; } 50% { transform: rotateY(-180deg); opacity: 0.5; } 100% { transform: rotateY(-180deg); opacity: 0; } }
+
+/* ============================
+   LIBRARY VIEW
+   ============================ */
+#digital-library-root .library-container { position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background: #111 !important; z-index: 500000 !important; display: none !important; flex-direction: column !important; padding: 40px !important; overflow-y: auto !important; }
+#digital-library-root .library-container.active { display: flex !important; }
+#digital-library-root .library-header { display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 40px !important; max-width: 1200px !important; width: 100% !important; margin: 0 auto 40px auto !important; }
+#digital-library-root .library-header h1 { font-family: 'Merriweather', serif !important; color: #fff !important; font-size: 1.5rem !important; }
+#digital-library-root .books-grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; gap: 40px !important; max-width: 1200px !important; width: 100% !important; margin: 0 auto !important; }
+#digital-library-root .book-card { background: #1a1a1a !important; aspect-ratio: 2/3 !important; cursor: pointer !important; transition: all 0.4s !important; position: relative !important; border-radius: 4px !important; overflow: hidden !important; box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important; }
+#digital-library-root .book-card:hover { transform: translateY(-8px) scale(1.02) !important; z-index: 1000 !important; }
+#digital-library-root .book-card img { width: 100% !important; height: 100% !important; object-fit: cover !important; }
+#digital-library-root .no-cover-placeholder { width: 100% !important; height: 100% !important; display: flex !important; align-items: center !important; justify-content: center !important; background: #222 !important; color: #444 !important; font-size: 0.8rem !important; text-transform: uppercase !important; padding: 10px !important; text-align: center !important; }
+#digital-library-root .delete-book-btn { position: absolute !important; top: 10px !important; right: 10px !important; width: 30px !important; height: 30px !important; background: rgba(255, 0, 0, 0.8) !important; color: white !important; border: none !important; border-radius: 50% !important; display: flex !important; align-items: center !important; justify-content: center !important; opacity: 0 !important; transition: all 0.2s ease !important; cursor: pointer !important; }
+#digital-library-root .book-card:hover .delete-book-btn { opacity: 1 !important; }
+
+/* ============================
+   NAV & TOOLS
+   ============================ */
+#digital-library-root .nav-toolbar {
+    position: absolute !important; top: 30px !important; left: 30px !important;
+    display: flex !important; align-items: center !important; gap: 15px !important;
+    z-index: 100000 !important; transition: left 0.5s var(--ease-paper), opacity 0.3s ease !important;
+}
+#digital-library-root .tool-btn {
+    background: transparent !important; border: none !important; cursor: pointer !important;
+    color: var(--text-color) !important; padding: 8px !important; border-radius: 50% !important;
+    display: flex !important; align-items: center !important; justify-content: center !important; opacity: 0.6 !important;
+}
+#digital-library-root .tool-btn:hover { background: rgba(255, 255, 255, 0.1) !important; opacity: 1 !important; transform: scale(1.1) !important; }
+body.light-mode #digital-library-root .tool-btn:hover { background: rgba(0, 0, 0, 0.05) !important; }
+#digital-library-root .text-btn { font-family: 'Lato', sans-serif !important; font-weight: bold !important; font-size: 0.9rem !important; border-radius: 4px !important; padding: 5px 10px !important; border: 1px solid var(--text-color) !important; }
+#digital-library-root .material-icons-outlined { font-size: 24px !important; color: var(--text-color) !important; }
+
+/* ============================
+   EDITOR MODAL
+   ============================ */
+#digital-library-root #edit-mode-btn { position: absolute !important; top: 20px !important; right: 80px !important; z-index: 100000 !important; background: #222 !important; color: #fff !important; border: 1px solid #333 !important; padding: 8px 20px !important; border-radius: 30px !important; font-family: 'Lato', sans-serif !important; cursor: pointer !important; }
+#digital-library-root #edit-mode-btn:hover { background: #fff !important; color: #000 !important; }
+
+#digital-library-root .modal-overlay { display: none !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100% !important; height: 100% !important; background: rgba(0,0,0,0.9) !important; z-index: 200000 !important; justify-content: center !important; align-items: center !important; backdrop-filter: blur(5px) !important; }
+#digital-library-root .modal-overlay.active { display: flex !important; }
+#digital-library-root .modal-content { width: 95% !important; max-width: 1100px !important; height: 85vh !important; background: #111 !important; border: 1px solid #333 !important; display: flex !important; flex-direction: column !important; box-shadow: 0 20px 50px rgba(0,0,0,0.8) !important; }
+#digital-library-root .modal-body { display: flex !important; flex: 1 !important; overflow: hidden !important; }
+#digital-library-root .pages-manager {
+    /* გავზარდეთ 220px-დან 300px-მდე */
+    width: 300px !important;
+    min-width: 300px !important; /* რომ არ შეიკუმშოს */
+
+    background: #0e0e0e !important;
+    border-right: 1px solid #222 !important;
+    display: flex !important;
+    flex-direction: column !important;
+
+    /* პადინგიც ოდნავ გავზარდოთ სივრცისთვის */
+    padding: 1.5rem !important;
+}
+
+#digital-library-root #editable-pages-list { list-style: none !important; flex: 1 !important; overflow-y: auto !important; }
+#digital-library-root #editable-pages-list li { display: flex !important; justify-content: space-between !important; padding: 10px !important; border-bottom: 1px solid #1a1a1a !important; color: #666 !important; cursor: pointer !important; }
+#digital-library-root #editable-pages-list li.selected, #digital-library-root #editable-pages-list li:hover { color: #fff !important; background: #1a1a1a !important; }
+#digital-library-root .editor-area {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important; /* აუცილებელია! */
+    overflow: hidden !important; /* რომ არაფერი გაიპაროს გარეთ */
+    position: relative !important;
+}
+/* 2. შუა ნაწილი (ედიტორი) - უნდა გაიშალოს დარჩენილ ადგილზე */
+#digital-library-root #editor-container {
+    flex: 1 !important; /* იკავებს მთელ თავისუფალ ადგილს */
+    overflow: hidden !important; /* სქროლი მხოლოდ შიგნით */
+    display: flex !important;
+    flex-direction: column !important;
+}
+/* 4. FOOTER (Save Button) - მუდამ ბოლოში და ზემოდან */
+#digital-library-root .editor-footer {
+    gap: 10px !important;
+    flex-shrink: 0 !important; /* არასდროს დაპატარავდეს! */
+    height: 70px !important;   /* ფიქსირებული სიმაღლე */
+    background: #0a0a0a !important;
+    border-top: 1px solid #222 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    padding: 0 20px !important;
+
+    /* ✅ გარანტია, რომ Settings-ის და ედიტორის ზემოდან იჯდეს */
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+/* Save Draft (ნეიტრალური ფერი) */
+#digital-library-root .secondary-btn {
+    padding: 10px 20px !important;
+    background: transparent !important;
+    border: 1px solid #444 !important;
+    color: #888 !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+    transition: all 0.2s !important;
+}
+#digital-library-root .secondary-btn:hover {
+    border-color: #fff !important;
+    color: #fff !important;
+}
+
+/* Publish (მწვანე/აქტიური ფერი) */
+#digital-library-root .primary-btn {
+    padding: 10px 25px !important;
+    background: #fff !important;
+    color: #000 !important;
+    border: none !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    border-radius: 4px !important;
+}
+#digital-library-root .primary-btn:hover {
+    background: #e0e0e0 !important;
+}
+
+
+
+
+#digital-library-root #save-changes-btn { padding: 10px 25px !important; background: #fff !important; color: #000 !important; border: none !important; font-weight: bold !important; cursor: pointer !important; }
+/* =========================================
+   MODAL HEADER STYLING
+   ========================================= */
+
+/* 1. ჰედერის კონტეინერი */
+#digital-library-root .modal-header {
+    background: #161616 !important; /* ოდნავ ღია, ვიდრე ედიტორის ტანი */
+    border-bottom: 1px solid #333 !important; /* გამყოფი ხაზი */
+    padding: 15px 25px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important; /* მსუბუქი ჩრდილი ქვემოთ */
+    z-index: 10 !important;
+}
+
+/* 2. სათაური "Book Editor" */
+#digital-library-root .modal-header h3 {
+    margin: 0 !important;
+    color: #e0e0e0 !important;
+    font-family: 'Lato', sans-serif !important;
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 2px !important; /* ასოებს შორის დაშორება სოლიდურობისთვის */
+
+    /* პატარა ვიზუალური დეტალი (მარცხენა ხაზი) */
+    border-left: 3px solid #fff !important;
+    padding-left: 15px !important;
+}
+
+/* 3. დახურვის ღილაკი (X) */
+#digital-library-root #close-modal {
+    background: transparent !important;
+    border: none !important;
+    color: #666 !important; /* დეფოლტად ჩამქრალი */
+    font-size: 24px !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+
+    /* ზომები ფონის ანიმაციისთვის */
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important; /* მრგვალი */
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+/* =========================================
+   MANAGER ACTIONS (Add / Reset Buttons)
+   ========================================= */
+
+/* 1. კონტეინერი - გამოვყოთ ხაზით */
+#digital-library-root .manager-actions {
+    margin-top: 15px !important;
+    padding-top: 15px !important;
+    border-top: 1px solid #222 !important; /* გამყოფი ხაზი */
+    display: flex !important;
+    flex-direction: column !important; /* ერთმანეთის ქვემოთ */
+    gap: 10px !important;
+
+}
+
+/* 2. ზოგადი სტილი ორივე ღილაკისთვის */
+#digital-library-root .manager-actions button {
+    width: 100% !important;
+    padding: 10px !important;
+    font-family: 'Lato', sans-serif !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+
+/* =========================================
+   SPECIFIC BUTTONS
+   ========================================= */
+
+/* A. ADD CHAPTER BUTTON (ნეიტრალური/მშვიდი) */
+#digital-library-root #add-page-btn {
+    background: transparent !important;
+    border: 1px dashed #444 !important; /* წყვეტილი ხაზი, როგორც "Add" სიმბოლო */
+    color: #888 !important;
+}
+
+/* Add Hover */
+#digital-library-root #add-page-btn:hover {
+    background: #1f1f1f !important;
+    border-color: #fff !important; /* ჩარჩო გათეთრდეს */
+    border-style: solid !important; /* ხაზი გამთლიანდეს */
+    color: #fff !important;
+    transform: translateY(-2px) !important;
+}
+
+
+/* B. RESET BUTTON (საშიში/წითელი) */
+#digital-library-root #reset-book-btn {
+    /* inline სტილს გადავაწეროთ ჩვენი ფერი */
+    background: rgba(217, 83, 79, 0.15) !important; /* მკრთალი წითელი ფონი */
+    border: 1px solid rgba(217, 83, 79, 0.3) !important;
+    color: #d9534f !important; /* წითელი ტექსტი */
+    margin-top: 5px !important;
+}
+
+/* Reset Hover - აინთოს წითლად */
+#digital-library-root #reset-book-btn:hover {
+    background: #d9534f !important; /* სავსე წითელი */
+    color: #fff !important; /* თეთრი ტექსტი */
+    border-color: #d9534f !important;
+    box-shadow: 0 4px 12px rgba(217, 83, 79, 0.4) !important; /* წითელი ნათება */
+}
+
+/* X ღილაკის ჰოვერი */
+#digital-library-root #close-modal:hover {
+    background: rgba(255, 255, 255, 0.1) !important; /* ოდნავ განათდეს ფონი */
+    color: #fff !important; /* გათეთრდეს იქსი */
+    transform: rotate(90deg) !important; /* ეფექტური დატრიალება */
+    box-shadow: 0 0 10px rgba(255,255,255,0.1) !important;
+}
+
+
+/* დაჭერის ეფექტი */
+#digital-library-root #close-modal:active {
+    transform: scale(0.9) rotate(90deg) !important;
+}
+/* Quill Overrides inside Root */
+#digital-library-root .ql-toolbar.ql-snow { background: #161616 !important; border: none !important; border-bottom: 1px solid #333 !important; }
+/* Quill-ის სქროლვადი ნაწილი */
+#digital-library-root .ql-container {
+    flex: 1 !important;
+    overflow: hidden !important;
+}
+#digital-library-root .ql-container.ql-snow { border: none !important; background: #111 !important; }
+/* =========================================
+   EDITOR TEXT AREA PADDING FIX
+   ========================================= */
+
+#digital-library-root .ql-editor {
+    height: 100% !important;
+    overflow-y: auto !important; /* სქროლი აქ არის */
+
+    /* თანმიმდევრობა: Top | Right | Bottom | Left
+       ზემოთ: 25px (რომ არ მიებჯინოს ტულბარს)
+       მარჯვნივ: 15px
+       ქვემოთ: 50px (რომ არ მიებჯინოს ფუტერს)
+       მარცხნივ: 15px
+    */
+    padding: 25px 15px 50px 15px !important;
+
+    /* ფონტი და ფერი (რაც გეწერა) */
+    color: #c0c0c0 !important;
+    font-family: 'Merriweather', serif !important;
+    font-size: 1rem !important;
+}
+/* 1. ტაბების კონტეინერი */
+#digital-library-root .editor-lang-tabs {
+    display: flex !important;
+    background: #0a0a0a !important;
+    border-bottom: 1px solid #222 !important;
+    position: relative !important;
+    padding: 10px!important;
+    box-shadow: inset 0 -10px 20px rgba(0,0,0,0.5) !important; /* შიდა ჩრდილი სიღრმისთვის */
+}
+
+/* 2. თვითონ ღილაკები (არააქტიური) */
+#digital-library-root .lang-tab {
+    flex: 1 !important; /* თანაბრად გადანაწილდეს */
+    background: transparent !important;
+    border: none !important;
+
+    /* ტექსტის სტილი */
+    color: #444 !important; /* ჩამქრალი ფერი */
+    font-family: 'Lato', sans-serif !important;
+    font-size: 0.85rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 2px !important;
+    text-transform: uppercase !important;
+
+    padding: 18px !important;
+    cursor: pointer !important;
+    position: relative !important;
+    overflow: hidden !important; /* რომ ანიმაცია არ გაცდეს */
+    transition: color 0.3s ease !important;
+}
+
+/* 3. "LOADER" ხაზი (დეფოლტად დამალულია) */
+#digital-library-root .lang-tab::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 3px !important; /* ხაზის სისქე */
+
+    /* გრადიენტი: ცივი თეთრი/ცისფერი ნათება */
+    background: linear-gradient(90deg, transparent 0%, #ffffff 50%, transparent 100%) !important;
+
+    /* ანიმაციის საწყისი მდგომარეობა: შეკუმშული */
+    transform: scaleX(0) !important;
+    transform-origin: center !important;
+    transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+
+    /* ნათება */
+    box-shadow: 0 -2px 10px rgba(255, 255, 255, 0.5) !important;
+    opacity: 0 !important;
+}
+
+/* 4. ჰოვერი (მაუსის მიტანა) */
+#digital-library-root .lang-tab:hover {
+    color: #888 !important;
+    background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.02) 100%) !important;
+}
+
+/* 5. აქტიური ტაბი (როცა დაჭერილია) */
+#digital-library-root .lang-tab.active {
+    color: #ffffff !important;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.6) !important; /* ტექსტის ნათება */
+    background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.05) 100%) !important;
+}
+
+/* 6. აქტიურზე "LOADER"-ის გამოჩენა */
+#digital-library-root .lang-tab.active::after {
+    transform: scaleX(1) !important; /* იშლება მთელ სიგანეზე */
+    opacity: 1 !important;
+}
+
+/* პატარა დეტალი: აქტიურის დროს პატარა წერტილი ზემოთ */
+#digital-library-root .lang-tab.active::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 40px !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, #fff, transparent) !important;
+    box-shadow: 0 1px 5px #fff !important;
+}
+#digital-library-root .lang-tab { flex: 1 !important; background: transparent !important; border: none !important; color: #666 !important; padding: 15px !important; font-weight: bold !important; cursor: pointer !important; }
+#digital-library-root .lang-tab.active { color: #fff !important; border-bottom: 2px solid #fff !important; background: #161616 !important; }
+
+/* Settings Form */
+#digital-library-root #settings-form {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+
+    /* ✅ მნიშვნელოვანი: სიმაღლე არის 100% მინუს ფუტერის სიმაღლე (70px) */
+    height: calc(100% - 70px) !important;
+
+    background: #111 !important;
+    z-index: 50 !important;
+    display: none;
+    flex-direction: column !important;
+    border-bottom: 1px solid #222 !important;
+}
+/* როცა აქტიურია (JS დასვამს display: flex-ს style-ში, მაგრამ აქაც გავწეროთ) */
+#digital-library-root #settings-form.active {
+    display: flex !important;
+}
+
+/* =========================================
+   SETTINGS OVERLAY STYLING (FIXED)
+   ========================================= */
+
+#digital-library-root .editor-area {
+    position: relative !important;
+    width: 100% !important;
+}
+
+#digital-library-root #settings-form {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    /* ✅ FIX: სიმაღლე ისე, რომ ფუტერი არ დაფაროს (ფუტერი დაახლოებით 70px-ია) */
+    height: calc(100% - 70px) !important;
+    z-index: 50 !important;
+
+    background: #111 !important;
+    display: none;
+    flex-direction: column !important;
+    border-bottom: 1px solid #222 !important; /* ხაზი რომ გამოეყოს ფუტერს */
+}
+
+#digital-library-root #settings-form.active {
+    display: flex !important;
+}
+
+#digital-library-root .settings-header-bar {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 15px 25px !important;
+    background: #0e0e0e !important;
+    border-bottom: 1px solid #333 !important;
+}
+
+#digital-library-root .settings-header-bar h4 {
+    margin: 0 !important;
+    color: #fff !important;
+    font-family: 'Lato', sans-serif !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+#digital-library-root #close-settings-btn {
+    background: transparent !important;
+    border: none !important;
+    color: #888 !important;
+    font-size: 24px !important;
+    cursor: pointer !important;
+    transition: all 0.2s !important;
+    width: 30px !important;
+    height: 30px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+}
+
+#digital-library-root #close-settings-btn:hover {
+    background: rgba(255,255,255,0.1) !important;
+    color: #fff !important;
+    transform: rotate(90deg) !important;
+}
+
+#digital-library-root .settings-scroll-content {
+    flex: 1 !important; /* გაიშალოს */
+    overflow-y: auto !important; /* ისქროლოს თუ ვერ ეტევა */
+    padding: 25px !important;
+}
+
+/* Image Preview Styling */
+#digital-library-root .image-preview {
+    width: 150px !important;
+    height: 200px !important;
+    background: #222 !important;
+    border: 1px dashed #444 !important;
+    margin-top: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.8rem !important;
+    color: #666 !important;
+
+    /* სურათის ჩვენებისთვის */
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+}
+#digital-library-root .form-group { margin-bottom: 1.5rem !important; }
+#digital-library-root .form-group label { display: block !important; margin-bottom: 0.5rem !important; color: #888 !important; }
+#digital-library-root .form-group input[type="text"] { width: 100% !important; padding: 10px !important; background: #222 !important; border: 1px solid #333 !important; color: #fff !important; border-radius: 4px !important; }
+
+/* ============================
+   MOBILE RESPONSIVE
+   ============================ */
+/* ============================
+   MOBILE RESPONSIVE (IMMERSIVE FIX)
+   ============================ */
+@media (max-width: 768px) {
+    /* 1. ეკრანის "ხტუნვის" გათიშვა (მნიშვნელოვანია!) */
+    html, body {
+        overscroll-behavior-y: none !important; /* Android */
+        -webkit-overflow-scrolling: auto !important; /* iOS fix */
+    }
+
+    #digital-library-root {
+        /* მხოლოდ ვერტიკალური სქროლი დავუშვათ, ჰორიზონტალური ჩვენია */
+        touch-action: pan-y !important;
+    }
+
+    /* 2. მოდალი და ინტერფეისი */
+    #digital-library-root .modal-content {
+        width: 100% !important; height: 100% !important; max-width: 100% !important;
+        border-radius: 0 !important; border: none !important;
+    }
+    #digital-library-root .modal-body { flex-direction: column !important; border: none !important; }
+    #digital-library-root .pages-manager {
+        width: 100% !important; height: auto !important; max-height: 40vh !important;
+        flex-shrink: 0 !important; border-right: none !important; border-bottom: 1px solid #333 !important;
+        padding: 15px !important; background: #0e0e0e !important; z-index: 50 !important;
+    }
+    #digital-library-root #editable-pages-list {
+        display: block !important; min-height: 120px !important; overflow-y: auto !important;
+        flex: 1 !important; background: #000 !important; border: 1px solid #222 !important;
+        margin: 10px 0 !important; padding: 5px !important;
+    }
+    #digital-library-root .manager-actions { margin-top: 0 !important; padding-top: 5px !important; border: none !important; flex-shrink: 0 !important; }
+    #digital-library-root .editor-area { width: 100% !important; flex: 1 !important; height: auto !important; }
+    #digital-library-root .ql-toolbar { position: sticky !important; top: 0 !important; z-index: 20 !important; background: #161616 !important; }
+    #digital-library-root .ql-editor { padding: 15px !important; padding-bottom: 80px !important; font-size: 1.1rem !important; }
+    #digital-library-root #settings-form { height: calc(100% - 60px) !important; z-index: 200 !important; }
+    #digital-library-root .editor-footer { height: 60px !important; padding: 5px 15px !important; }
+    #digital-library-root .nav-toolbar { top: 15px !important; left: 15px !important; gap: 10px !important; }
+    body:not(.sidebar-closed) #digital-library-root .nav-toolbar { left: calc(var(--sidebar-width) + 15px) !important; }
+    #digital-library-root #main-content { margin-left: 0 !important; perspective: none !important; display: flex !important; flex-direction: column !important; height: 100dvh !important; padding-top: 15px !important; }
+
+    /* UI Buttons */
+    #digital-library-root .open-sidebar-btn, #digital-library-root #admin-login-btn, #digital-library-root #edit-mode-btn {
+        position: absolute !important; top: 15px !important; z-index: 200000 !important; opacity: 1 !important;
+        padding: 8px 10px !important; border-radius: 6px !important; background: var(--bg-color) !important; border: 1px solid #333 !important;
+    }
+    #digital-library-root #admin-login-btn { right: 15px !important; left: auto !important; }
+    #digital-library-root #edit-mode-btn { right: 75px !important; left: auto !important; font-size: 0.8rem !important; padding: 8px 15px !important; }
+    #digital-library-root #go-to-library-icon { left: 70px !important; }
+    #digital-library-root #lang-switcher-btn { left: auto !important; right: 15px !important; top: 20px !important; }
+
+    /* Book Scene */
+    #digital-library-root .site-title { position: relative !important; top: 0 !important; margin-top: 45px !important; min-height: 70px !important; display: flex !important; flex-direction: column !important; justify-content: flex-end !important; }
+    #digital-library-root .book-scene { width: 100% !important; flex-grow: 1 !important; margin-top: 0 !important; overflow: hidden !important; }
+    #digital-library-root .book { width: 100% !important; height: 100% !important; transform: none !important; position: relative !important; }
+
+    /* 3. ✅ ANIMATION LOGIC: SLIDE EFFECT */
+    #digital-library-root .paper {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 0 !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        box-shadow: none !important;
+        transform: translate3d(0, 0, 0) !important; /* Hardware Acceleration */
+        transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease !important;
+        opacity: 1 !important;
+        background: var(--paper-color) !important;
+        display: block !important; /* ყოველთვის ჩანდეს, რომ ანიმაცია იმუშაოს */
+    }
+
+    /* გაშლილი (წაკითხული) გვერდები გადიან მარცხნივ */
+    #digital-library-root .paper.flipped {
+        transform: translate3d(-110%, 0, 0) !important;
+        opacity: 0.5 !important;
+        pointer-events: none !important; /* რომ ხელი არ შეუშალოს */
+    }
+
+    /* უკანა მხარეები მობილურზე არ გვჭირდება, მხოლოდ Front-ს ვაჩვენებთ */
+    #digital-library-root .back { display: none !important; }
+    #digital-library-root .front { display: block !important; width: 100% !important; height: 100% !important; }
+
+    /* შიგთავსი */
+    #digital-library-root #measure-container,
+    #digital-library-root .page-content {
+        width: 100% !important; height: 100% !important;
+        padding: 2rem 1.5rem 4rem 1.5rem !important;
+        font-size: 1rem !important;
+    }
+    #digital-library-root .page-number { bottom: 1.5rem !important; }
+}
+
+body.light-mode #digital-library-root .book { box-shadow: 0 20px 50px rgba(0,0,0,0.2) !important; }
+
+/* Utility */
+#digital-library-root .trp-floating-switcher { display: none !important; }
+
+/* =========================================
+   NEW BOOK BUTTON STYLING
+   ========================================= */
+
+#digital-library-root #create-new-book-btn {
+    /* გრადიენტი მსუბუქი მეტალის ეფექტისთვის */
+    background: linear-gradient(135deg, #ffffff 0%, #d6d6d6 100%) !important;
+
+    /* ტექსტი */
+    color: #111111 !important;
+    font-family: 'Noto Sans Georgian', sans-serif !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+
+    /* ფორმა და ზომა */
+    border: none !important;
+    padding: 12px 28px !important;
+    border-radius: 4px !important; /* ოდნავ მომრგვალებული */
+    cursor: pointer !important;
+
+    /* ჩრდილი სიღრმისთვის */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+
+    /* ანიმაცია */
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+
+    /* განლაგება */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important; /* პლუსსა და ტექსტს შორის დაშორება */
+}
+
+/* მაუსის მიტანისას (Hover) */
+#digital-library-root #create-new-book-btn:hover {
+    transform: translateY(-2px) !important; /* ოდნავ აიწევს */
+    background: #ffffff !important; /* მთლიანად გათეთრდება */
+    /* თეთრი ნათება გარშემო */
+    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.15) !important;
+}
+
+/* დაჭერისას (Click) */
+#digital-library-root #create-new-book-btn:active {
+    transform: translateY(1px) !important; /* ჩაიწევს */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5) !important;
+    opacity: 0.9 !important;
+}
+/* ✅ FIX: თუ ადმინი არ არის, ეს ID აუცილებლად დაიმალოს */
+body:not(.is-admin) #digital-library-root #create-new-book-btn {
+    display: none !important;
+}
+
+/* =========================================
+   SETTINGS BUTTON STYLING
+   ========================================= */
+
+#digital-library-root #open-settings-btn {
+    /* ფონი: მუქი ნაცრისფერი, ოდნავ ღია ვიდრე მთლიანი პანელი */
+    background: #1f1f1f !important;
+    border: 1px solid #333 !important;
+
+    /* ტექსტი */
+    color: #a0a0a0 !important;
+    font-family: 'Lato', sans-serif !important; /* ან Noto Sans, რაც გირჩევნია */
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+    text-align: center !important;
+
+    /* ზომები და ფორმა */
+    padding: 12px 15px !important;
+    width: 100% !important; /* რომ მთელ სიგანეზე გაიშალოს */
+    border-radius: 6px !important;
+    margin-bottom: 20px !important; /* დაშორება თავების სიისგან */
+    cursor: pointer !important;
+
+    /* ანიმაცია */
+    transition: all 0.2s ease-in-out !important;
+
+    /* პატარა დეტალი: მარცხენა აქცენტი */
+    border-left: 3px solid #444 !important;
+}
+
+/* მაუსის მიტანისას (Hover) */
+#digital-library-root #open-settings-btn:hover {
+    background: #2a2a2a !important; /* ოდნავ განათდეს */
+    color: #ffffff !important;      /* ტექსტი გათეთრდეს */
+    border-color: #444 !important;  /* ჩარჩოც განათდეს */
+    border-left-color: #ffffff !important; /* მარცხენა ხაზი გათეთრდეს (აქცენტი) */
+    transform: translateX(2px) !important; /* ოდნავ მარჯვნივ გაიწიოს */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
+}
+
+/* როცა აქტიურია (Settings გახსნილია) ან დაჭერილია */
+#digital-library-root #open-settings-btn:active,
+#digital-library-root #open-settings-btn.active {
+    background: #333 !important;
+    color: #fff !important;
+    border-left-color: #007bff !important; /* აქტიურზე ლურჯი ხაზი (თუ გინდა) */
+    transform: translateX(0) !important;
+}
+
+/* =========================================================
+   MOBILE EXPAND/COLLAPSE TOGGLE (The "Blue" Button)
+   ========================================================= */
+
+/* დესკტოპზე არ გვინდა */
+#digital-library-root #mobile-expand-toggle {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+
+    /* 1. ღილაკის ვიზუალი */
+    #digital-library-root #mobile-expand-toggle {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+
+        width: 100% !important;
+        height: 30px !important; /* პატარა ზოლი */
+
+        background: #1a1a1a !important; /* ოდნავ ღია ფერი */
+        border: none !important;
+        border-top: 1px solid #333 !important;
+        border-bottom: 1px solid #333 !important;
+
+        color: #888 !important;
+        cursor: pointer !important;
+        z-index: 60 !important;
+        transition: all 0.2s ease !important;
+    }
+
+    #digital-library-root #mobile-expand-toggle:hover {
+        background: #222 !important;
+        color: #fff !important;
+    }
+
+    /* 2. გაშლილი რეჟიმი (Expanded Mode) */
+    /* როცა modal-body-ს აქვს კლასი .expanded-mode */
+
+    #digital-library-root .modal-body.expanded-mode .pages-manager {
+        display: none !important; /* ზედა ნაწილი ქრება! */
+    }
+
+    /* ისარი ამოტრიალდეს */
+    #digital-library-root .modal-body.expanded-mode #mobile-expand-toggle .material-icons-outlined {
+        transform: rotate(180deg); /* ისარი ქვემოთ */
+    }
+
+    /* ღილაკი ოდნავ შეიცვალოს რომ მიგახვედროს */
+    #digital-library-root .modal-body.expanded-mode #mobile-expand-toggle {
+        background: #1d252d !important; /* ლურჯი აქცენტი */
+        color: #fff !important;
+        border-color: #202b36 !important;
+    }
+}
+
+/* =========================================
+   ENHANCED QUILL TOOLBAR STYLING
+   ========================================= */
+
+/* 1. ყველა აიკონის ფერი (თეთრი/ნაცრისფერი) */
+#digital-library-root .ql-snow .ql-stroke {
+    stroke: #a0a0a0 !important;
+}
+#digital-library-root .ql-snow .ql-fill {
+    fill: #a0a0a0 !important;
+}
+
+/* 2. აქტიური ღილაკი (როცა დაჭერილია - თეთრი) */
+#digital-library-root .ql-snow .ql-active .ql-stroke {
+    stroke: #ffffff !important;
+}
+#digital-library-root .ql-snow .ql-active .ql-fill {
+    fill: #ffffff !important;
+}
+
+/* 3. Dropdowns (Align და სხვა ჩამოსაშლელი მენიუები) */
+#digital-library-root .ql-snow .ql-picker {
+    color: #a0a0a0 !important;
+}
+#digital-library-root .ql-snow .ql-picker-label::before {
+    color: #a0a0a0 !important;
+}
+
+/* ჩამოსაშლელი მენიუს ფონი (რომ არ იყოს თეთრი) */
+#digital-library-root .ql-snow .ql-picker-options {
+    background-color: #1a1a1a !important;
+    border: 1px solid #333 !important;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5) !important;
+}
+
+/* მენიუს ოფციები */
+#digital-library-root .ql-snow .ql-picker-item {
+    color: #a0a0a0 !important;
+}
+#digital-library-root .ql-snow .ql-picker-item:hover,
+#digital-library-root .ql-snow .ql-picker-item.ql-selected {
+    color: #fff !important;
+    stroke: #fff !important;
+}
+
+/* 4. Blockquote სტილი ედიტორის შიგნით */
+#digital-library-root .ql-editor blockquote {
+    border-left: 3px solid #d4af37 !important; /* ოქროსფერი ხაზი */
+    padding-left: 15px !important;
+    font-style: italic !important;
+    color: #ccc !important;
+    background: rgba(255,255,255,0.05) !important; /* ოდნავ გამოყოფილი ფონი */
+    padding: 10px !important;
+    margin: 10px 0 !important;
+}
+
+/* 5. Toolbar-ის ღილაკების დაშორება */
+#digital-library-root .ql-toolbar button {
+    margin-right: 2px !important;
+}
+#digital-library-root .ql-formats {
+    margin-right: 10px !important;
+    border-right: 1px solid #333 !important; /* გამყოფი ხაზები ჯგუფებს შორის */
+    padding-right: 10px !important;
+}
+#digital-library-root .ql-formats:last-child {
+    border-right: none !important;
+}
+
+/* =========================================
+   QUILL FORMATTING FIXES (EDITOR & READER)
+   ========================================= */
+
+/* 1. ტექსტის გასწორება (Align) */
+#digital-library-root .ql-align-center {
+    text-align: center !important;
+}
+#digital-library-root .ql-align-right {
+    text-align: right !important;
+}
+#digital-library-root .ql-align-justify {
+    text-align: justify !important;
+}
+
+/* 2. სიები (Lists) - მხოლოდ მარჯინები დავუბრუნოთ */
+/* პრობლემა იყო აქ: list-style-type-ს აღარ ვეხებით, Quill თვითონ მიხედავს */
+
+#digital-library-root .ql-editor ul,
+#digital-library-root .page-content ul,
+#digital-library-root .ql-editor ol,
+#digital-library-root .page-content ol {
+    padding-left: 1.5rem !important; /* აუცილებელია, რომ ბულეტი არ დაიმალოს */
+    margin-bottom: 1rem !important;
+}
+
+#digital-library-root .ql-editor li,
+#digital-library-root .page-content li {
+    list-style-position: outside !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* ❌ წაშლილია: list-style-type-ის იძულება, რაც იწვევდა გაორებას "1. 1." */
+R
+/* 3. შეწევა (Indent) */
+#digital-library-root .ql-indent-1 {
+    padding-left: 3rem !important;
+}
+#digital-library-root .ql-indent-2 {
+    padding-left: 6rem !important;
+}
+#digital-library-root .ql-indent-3 {
+    padding-left: 9rem !important;
+}
+
+
+#digital-library-root em,
+#digital-library-root i {
+    font-style: italic !important;
+    color: #818181 !important;
+}
+
+/* 5. სათაურები ედიტორის შიგნით */
+#digital-library-root .ql-editor h1 {
+    font-size: 1.8rem !important;
+    margin-bottom: 1rem !important;
+    margin-top: 1rem !important;
+    line-height: 1.2 !important;
+}
+#digital-library-root .ql-editor h2 {
+    font-size: 1.4rem !important;
+    margin-bottom: 0.8rem !important;
+    margin-top: 1rem !important;
+}
+#digital-library-root .ql-editor h3 {
+    font-size: 1.1rem !important;
+    text-transform: uppercase !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* ედიტორის ტექსტის გასწორება (მარცხნივ) */
+#editor-container .ql-editor {
+    text-align: left !important;
+}
+
+#editor-container .ql-editor p {
+    text-align: left !important;
+    text-align-last: left !important; /* უსაფრთხოებისთვის */
+}
+/* 6. ფონტები */
+#digital-library-root .ql-editor {
+    font-family: 'Noto Sans Georgian', sans-serif !important;
+    font-weight: 300 !important;
+    line-height: 1.6 !important;
+}
+
+#digital-library-root .ql-editor,
+#digital-library-root input,
+#digital-library-root textarea {
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    user-select: text !important;
+    cursor: text !important;
+}
+
+/* 3. სურათების "გათრევა" (Drag) ავკრძალოთ, რომ არ აყვეს ხელს */
+#digital-library-root img {
+    -webkit-user-drag: none;
+    user-drag: none;
+    pointer-events: none; /* ეს უზრუნველყოფს რომ სურათი არ გალურჯდეს */
+}
+
+
+/* =========================================
+   FULL PAGE IMAGE STYLES
+   ========================================= */
+
+/* კონტეინერი, რომელიც სურათს იკავებს */
+#digital-library-root .full-page-img-wrapper {
+
+    height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    /* უარყოფითი მარჯინები, რომ პადინგები გადაფაროს და ნაპირებამდე მივიდეს */
+    margin: -3rem -3rem -1rem -3rem !important;
+
+    /* თუ მობილურზე სხვა პადინგი გაქვს, იქაც უნდა გაითვალისწინო */
+}
+
+/* მობილურისთვის (რადგან იქ პადინგი ნაკლებია) */
+@media (max-width: 768px) {
+    #digital-library-root .full-page-img-wrapper {
+        margin: -2rem -1.5rem -4rem -1.5rem !important;
+    }
+}
+
+/* თვითონ სურათი */
+#digital-library-root .full-page-img-wrapper img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important; /* ან contain, თუ გინდა რომ არ ჩამოიჭრას */
+    display: block !important;
+    border-radius: 2px !important;
+}
+
+/* =========================================
+   SEO VISUALLY HIDDEN (For Bots Only)
+   ========================================= */
+#digital-library-root .visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0,0,0,0) !important;
+    white-space: pre-wrap !important; /* რომ აბზაცები შეინარჩუნოს */
+    border: 0 !important;
+}
+
+/* =========================================
+   ADMIN VIEW COUNTER OVERLAY
+   ========================================= */
+
+/* 1. დარწმუნდით, რომ Paper არის Relative */
+#digital-library-root .paper {
+    position: relative !important;
+}
+
+/* 2. სტატისტიკის ოვერლეი (ფარავს overflow-ს) */
+#digital-library-root .page-stats-overlay {
+    position: absolute !important;
+    bottom: 15px !important; /* ქვედა დაშორება */
+    right: 15px !important;  /* მარჯვენა დაშორება */
+
+    padding: 5px 10px !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    color: #ffc107 !important; /* ყვითელი ფერი */
+    font-size: 0.7rem !important;
+    font-family: 'Lato', sans-serif !important;
+    border-radius: 3px !important;
+    z-index: 5000 !important; /* რომ ყველაფრის თავზე იყოს */
+    pointer-events: none !important; /* რომ ხელს არ უშლიდეს გვერდზე კლიკს */
+}
