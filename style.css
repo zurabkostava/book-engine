@@ -1302,3 +1302,81 @@ R
     z-index: 5000 !important; /* რომ ყველაფრის თავზე იყოს */
     pointer-events: none !important; /* რომ ხელს არ უშლიდეს გვერდზე კლიკს */
 }
+
+/* Sidebar Accordion Styles */
+.chapter-list {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* მშობელი ელემენტი (H1) */
+.chapter-item {
+    border-bottom: 1px solid #222;
+}
+
+/* სათაურის კონტეინერი (ტექსტი + ისარი) */
+.chapter-header {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 12px 10px !important;
+    cursor: pointer !important;
+    transition: background 0.2s !important;
+    color: #888;
+}
+
+.chapter-header:hover,
+.chapter-header.active {
+    color: #fff !important;
+    background: rgba(255,255,255,0.05) !important;
+}
+
+/* ისარი (ვიყენებთ Material Icons-ს, რომელიც უკვე გვაქვს) */
+.toggle-icon {
+    font-family: 'Material Icons Outlined' !important;
+    font-size: 18px !important;
+    transition: transform 0.3s ease !important;
+    opacity: 0.7;
+}
+
+/* როცა გახსნილია, ისარი ტრიალდება */
+.chapter-item.expanded .toggle-icon {
+    transform: rotate(180deg) !important;
+    color: #fff !important;
+}
+
+/* შვილობილი სია (H2, H3) - თავიდან დამალული */
+.sub-chapter-list {
+    display: none; /* დამალულია */
+    list-style: none !important;
+    padding-left: 0 !important;
+    background: #0a0a0a !important;
+    border-left: 2px solid #333 !important;
+}
+
+/* როცა მშობელს აქვს კლასი .expanded, შვილი ჩნდება */
+.chapter-item.expanded .sub-chapter-list {
+    display: block !important;
+    animation: slideDown 0.3s ease-out;
+}
+
+/* შვილობილი ელემენტები */
+.sub-chapter-item {
+    padding: 8px 10px 8px 25px !important;
+    font-size: 0.85rem !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    transition: color 0.2s !important;
+}
+
+.sub-chapter-item:hover,
+.sub-chapter-item.active {
+    color: #fff !important;
+    background: rgba(255,255,255,0.02) !important;
+}
+
+@keyframes slideDown {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
