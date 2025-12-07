@@ -568,68 +568,90 @@ function buildDynamicSidebar(totalPapers) {
     sidebarList.innerHTML = '';
     const isMobile = window.innerWidth <= 768;
 
-    // Cover
+    // Cover Item
     const coverLi = document.createElement('li');
-    coverLi.innerText = (currentLanguage === 'en') ? "Cover" : "გარეკანი";
-    coverLi.className = "toc-h1";
-    coverLi.setAttribute('data-virtual-id', -1);
-
+    coverLi.className = "toc-item toc-h1 no-children";
+    coverLi.innerHTML = `<span class="toc-text">${(currentLanguage === 'en') ? "Cover" : "გარეკანი"}</span>`;
     coverLi.onclick = () => {
-        const event = new CustomEvent('book-nav', {
-            detail: {
-                pageIndex: 0,
-                total: totalPapers,
-                side: 'front'
-            }
-        });
+        const event = new CustomEvent('book-nav', { detail: { pageIndex: 0, total: totalPapers, side: 'front' } });
         document.dispatchEvent(event);
         closeSidebarMobile();
     };
     sidebarList.appendChild(coverLi);
 
     const papers = document.querySelectorAll('.paper');
+    let currentParentUl = null; // სად ვყრით H2-ებს
 
     papers.forEach((paper, paperIndex) => {
-        // ვეძებთ სათაურებს როგორც Front, ისე Back მხარეს (დესკტოპისთვის)
-        const headings = paper.querySelectorAll('h1, h2, h3');
+        const headings = paper.querySelectorAll('h1, h2'); // მხოლოდ H1 და H2
 
         headings.forEach(heading => {
             if (heading.classList.contains('split-continuation')) return;
 
-            const li = document.createElement('li');
-            const fullText = heading.getAttribute('data-full-text');
-            li.innerText = fullText ? fullText : heading.innerText;
-            li.classList.add(`toc-${heading.tagName.toLowerCase()}`);
+            const fullText = heading.getAttribute('data-full-text') || heading.innerText;
+            const tagName = heading.tagName.toLowerCase();
 
-            // მობილურზე "Back" არ არსებობს, ყველაფერი Front-ია
+            // ნავიგაციის მონაცემები
             const isBack = isMobile ? false : (heading.closest('.back') !== null);
             const side = isBack ? 'back' : 'front';
+            let virtualId = isMobile ? paperIndex : (paperIndex * 2) + (isBack ? 1 : 0);
 
-            // ID სკროლისთვის
-            let virtualId;
-            if (isMobile) {
-                virtualId = paperIndex; // მობილურზე მარტივია: 1 ფურცელი = 1 ID
-            } else {
-                virtualId = (paperIndex * 2) + (isBack ? 1 : 0);
+            if (tagName === 'h1') {
+                // --- H1: ვქმნით ახალ მშობელ LI-ს ---
+                const li = document.createElement('li');
+                li.className = "toc-item toc-h1 has-children closed"; // დეფოლტად დახურული
+                li.setAttribute('data-virtual-id', virtualId);
+
+                // ისარი და ტექსტი
+                li.innerHTML = `
+                    <div class="toc-header">
+                        <span class="material-icons-outlined toc-arrow">expand_more</span>
+                        <span class="toc-text">${fullText}</span>
+                    </div>
+                    <ul class="toc-sublist"></ul>
+                `;
+
+                // კლიკზე: 1. გადავიდეს გვერდზე 2. გაშალოს/აკეცოს
+                const headerDiv = li.querySelector('.toc-header');
+                headerDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    // ნავიგაცია
+                    const event = new CustomEvent('book-nav', { detail: { pageIndex: paperIndex, total: totalPapers, side: side } });
+                    document.dispatchEvent(event);
+                    closeSidebarMobile();
+
+                    // აკეცვა/გაშლა (ვიზუალი)
+                    document.querySelectorAll('.toc-item.toc-h1').forEach(el => {
+                        if(el !== li) el.classList.add('closed'); // სხვების დახურვა (სურვილისამებრ)
+                    });
+                    li.classList.toggle('closed');
+                };
+
+                sidebarList.appendChild(li);
+                currentParentUl = li.querySelector('.toc-sublist'); // H2-ები აქ ჩაიყრება
+
+            } else if (tagName === 'h2') {
+                // --- H2: ვამატებთ მიმდინარე H1-ის სიაში ---
+                const li = document.createElement('li');
+                li.className = "toc-item toc-h2";
+                li.setAttribute('data-virtual-id', virtualId);
+                li.innerText = fullText;
+
+                li.onclick = (e) => {
+                    e.stopPropagation();
+                    const event = new CustomEvent('book-nav', { detail: { pageIndex: paperIndex, total: totalPapers, side: side } });
+                    document.dispatchEvent(event);
+                    closeSidebarMobile();
+                };
+
+                // თუ მშობელი არსებობს, ვამატებთ შიგნით, თუ არა - მთავარ სიაში
+                if (currentParentUl) {
+                    currentParentUl.appendChild(li);
+                    // თუ H2 დაემატა, მშობელს მოვხსნათ "no-children" ვიზუალი (თუ გვექნება)
+                } else {
+                    sidebarList.appendChild(li);
+                }
             }
-
-            li.setAttribute('data-virtual-id', virtualId);
-
-            // ეს უბრალოდ ვიზუალური ნომრისთვის (თუ დაგჭირდა)
-            li.setAttribute('data-target-page', paperIndex + 1);
-
-            li.onclick = () => {
-                const event = new CustomEvent('book-nav', {
-                    detail: {
-                        pageIndex: paperIndex,
-                        total: totalPapers,
-                        side: side
-                    }
-                });
-                document.dispatchEvent(event);
-                closeSidebarMobile();
-            };
-            sidebarList.appendChild(li);
         });
     });
 }
